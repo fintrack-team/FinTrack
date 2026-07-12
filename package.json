@@ -129,7 +129,7 @@
     "globals": "^17.7.0",
     "husky": "^9.1.7",
     "lint-staged": "^17.0.8",
-    "next": "^16.2.9",
+    "next": "^16.2.10",
     "prettier": "^3.8.4",
     "turbo": "^2.10.0",
     "typescript": "6.0.3",
