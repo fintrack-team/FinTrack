@@ -36,7 +36,7 @@
   "dependencies": {
     "@grammyjs/conversations": "^2.1.0",
     "dotenv": "^17.4.2",
-    "grammy": "^1.44.0",
+    "grammy": "^1.45.1",
     "ioredis": "5.11.1",
     "pino": "10.3.1"
   },
