@@ -129,7 +129,7 @@
     "globals": "^17.7.0",
     "husky": "^9.1.7",
     "lint-staged": "^17.0.8",
-    "next": "^16.2.9",
+    "next": "^16.2.12",
     "prettier": "^3.8.4",
     "turbo": "^2.10.0",
     "typescript": "6.0.3",
@@ -138,7 +138,7 @@
   "optionalDependencies": {
     "@rolldown/binding-linux-x64-gnu": "*",
     "@rolldown/binding-linux-x64-musl": "*",
-    "@rollup/rollup-linux-x64-gnu": "^4.62.2",
+    "@rollup/rollup-linux-x64-gnu": "^4.62.3",
     "@tailwindcss/oxide-linux-x64-gnu": "*",
     "lightningcss-linux-x64-gnu": "*"
   }
