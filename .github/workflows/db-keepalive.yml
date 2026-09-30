@@ -1,0 +1,20 @@
+name: DB Keepalive
+
+# Supabase free tier pauses a project after 7 days without database activity.
+on:
+  schedule:
+    - cron: "0 6 */3 * *"
+  workflow_dispatch:
+
+jobs:
+  ping:
+    name: Ping Supabase
+    runs-on: ubuntu-latest
+    steps:
+      - name: Run a trivial query
+        env:
+          DIRECT_URL: ${{ secrets.SUPABASE_DIRECT_URL }}
+        run: |
+          [ -n "$DIRECT_URL" ] || { echo "::error::Missing SUPABASE_DIRECT_URL secret"; exit 1; }
+          # psql rejects Prisma-only query params like pgbouncer=true
+          psql "${DIRECT_URL%%\?*}" -c "select 1"

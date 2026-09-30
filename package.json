@@ -126,19 +126,19 @@
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-react": "^7.37.5",
     "eslint-plugin-react-hooks": "^7.1.1",
-    "globals": "^17.7.0",
+    "globals": "^17.12.0",
     "husky": "^9.1.7",
-    "lint-staged": "^17.0.8",
-    "next": "^16.2.9",
-    "prettier": "^3.8.4",
-    "turbo": "^2.10.0",
+    "lint-staged": "^17.5.1",
+    "next": "^16.3.4",
+    "prettier": "^3.9.9",
+    "turbo": "^2.11.3",
     "typescript": "6.0.3",
-    "typescript-eslint": "^8.62.0"
+    "typescript-eslint": "^8.70.1"
   },
   "optionalDependencies": {
     "@rolldown/binding-linux-x64-gnu": "*",
     "@rolldown/binding-linux-x64-musl": "*",
-    "@rollup/rollup-linux-x64-gnu": "^4.62.2",
+    "@rollup/rollup-linux-x64-gnu": "^4.63.1",
     "@tailwindcss/oxide-linux-x64-gnu": "*",
     "lightningcss-linux-x64-gnu": "*"
   }

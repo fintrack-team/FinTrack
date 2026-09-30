@@ -5,6 +5,9 @@ updates:
     schedule:
       interval: "weekly"
       day: "sunday"
+    ignore:
+      - dependency-name: "@types/node"
+        update-types: ["version-update:semver-major"]
     open-pull-requests-limit: 10
     groups:
       production-dependencies:
