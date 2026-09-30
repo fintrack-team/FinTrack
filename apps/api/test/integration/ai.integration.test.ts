@@ -1,4 +1,4 @@
-import { jest } from "@jest/globals";
+import { vi } from "vitest";
 import request from "supertest";
 
 import type { app as AppType } from "../../src/app.js";
@@ -17,34 +17,25 @@ class AiServiceError extends Error {
   }
 }
 
-// Mock objects are built once at module scope: jest may call a mock factory
-// more than once (it does on Linux), and a fresh object per call would leave
-// the test configuring a different jest.fn than the one the app calls.
 const authServiceModuleMock = {
-  findSessionById: jest.fn(),
-  findSessionByTokenHash: jest.fn(),
-  revokeSessionFamily: jest.fn(),
-  loginWithGoogle: jest.fn(),
-  createSession: jest.fn(),
-  createEmailVerificationToken: jest.fn(),
+  findSessionById: vi.fn(),
+  findSessionByTokenHash: vi.fn(),
+  revokeSessionFamily: vi.fn(),
+  loginWithGoogle: vi.fn(),
+  createSession: vi.fn(),
+  createEmailVerificationToken: vi.fn(),
 };
-jest.unstable_mockModule(
-  "../../src/modules/auth/service.js",
-  () => authServiceModuleMock,
-);
+vi.mock("../../src/modules/auth/service.js", () => authServiceModuleMock);
 
 const aiServiceModuleMock = {
   AiServiceError,
-  getAIHistory: jest.fn(),
-  getAiResponse: jest.fn(),
-  ensureAiAccessOrThrow: jest.fn(),
-  getAiAccessStatus: jest.fn(),
-  incrementAiAnalysisUsage: jest.fn(),
+  getAIHistory: vi.fn(),
+  getAiResponse: vi.fn(),
+  ensureAiAccessOrThrow: vi.fn(),
+  getAiAccessStatus: vi.fn(),
+  incrementAiAnalysisUsage: vi.fn(),
 };
-jest.unstable_mockModule(
-  "../../src/modules/ai/service.js",
-  () => aiServiceModuleMock,
-);
+vi.mock("../../src/modules/ai/service.js", () => aiServiceModuleMock);
 
 let app: typeof AppType;
 let authService: typeof AuthServiceTypes;
@@ -77,7 +68,7 @@ describe("AI Integration", () => {
   let token: string;
 
   beforeEach(() => {
-    jest.resetAllMocks();
+    vi.resetAllMocks();
 
     token = generateAccessToken({
       id: USER_ID,
@@ -88,7 +79,7 @@ describe("AI Integration", () => {
       sessionId: SESSION_ID,
     });
 
-    jest.mocked(authService.findSessionById).mockResolvedValue({
+    vi.mocked(authService.findSessionById).mockResolvedValue({
       sessionId: SESSION_ID,
       userId: USER_ID,
       revokedAt: null,
@@ -98,7 +89,7 @@ describe("AI Integration", () => {
 
   describe("GET /api/ai/history", () => {
     it("returns 200 with history array", async () => {
-      jest.mocked(aiService.getAIHistory).mockResolvedValue([
+      vi.mocked(aiService.getAIHistory).mockResolvedValue([
         {
           id: "msg-1",
           prompt: "Analyze my spending",
@@ -118,7 +109,7 @@ describe("AI Integration", () => {
 
   describe("GET /api/ai/access", () => {
     it("returns 200 with access status fields", async () => {
-      jest.mocked(aiService.getAiAccessStatus).mockResolvedValue(accessStub);
+      vi.mocked(aiService.getAiAccessStatus).mockResolvedValue(accessStub);
 
       const res = await request(app)
         .get("/api/ai/access")
@@ -132,15 +123,13 @@ describe("AI Integration", () => {
 
   describe("POST /api/ai", () => {
     it("returns 200 with AI response", async () => {
-      jest
-        .mocked(aiService.ensureAiAccessOrThrow)
-        .mockResolvedValue(accessStub);
-      jest.mocked(aiService.getAiResponse).mockResolvedValue({
+      vi.mocked(aiService.ensureAiAccessOrThrow).mockResolvedValue(accessStub);
+      vi.mocked(aiService.getAiResponse).mockResolvedValue({
         result: "You spent too much on food.",
       } as never);
-      jest
-        .mocked(aiService.incrementAiAnalysisUsage)
-        .mockResolvedValue(undefined);
+      vi.mocked(aiService.incrementAiAnalysisUsage).mockResolvedValue(
+        undefined,
+      );
 
       const res = await request(app)
         .post("/api/ai")
@@ -170,14 +159,12 @@ describe("AI Integration", () => {
 
     it("returns 403 when AI limit reached", async () => {
       const { AppError } = await import("../../src/middleware/errorHandler.js");
-      jest
-        .mocked(aiService.ensureAiAccessOrThrow)
-        .mockRejectedValue(
-          new AppError(
-            "AI analysis limit reached. Please make a donation to unlock unlimited access.",
-            403,
-          ),
-        );
+      vi.mocked(aiService.ensureAiAccessOrThrow).mockRejectedValue(
+        new AppError(
+          "AI analysis limit reached. Please make a donation to unlock unlimited access.",
+          403,
+        ),
+      );
 
       const res = await request(app)
         .post("/api/ai")
@@ -188,17 +175,13 @@ describe("AI Integration", () => {
     });
 
     it("returns 503 with error code when AI provider unavailable", async () => {
-      jest
-        .mocked(aiService.ensureAiAccessOrThrow)
-        .mockResolvedValue(accessStub);
-      jest
-        .mocked(aiService.getAiResponse)
-        .mockRejectedValue(
-          new AiServiceError(
-            "DEFAULT_KEY_LIMIT",
-            "Default AI service is temporarily unavailable.",
-          ),
-        );
+      vi.mocked(aiService.ensureAiAccessOrThrow).mockResolvedValue(accessStub);
+      vi.mocked(aiService.getAiResponse).mockRejectedValue(
+        new AiServiceError(
+          "DEFAULT_KEY_LIMIT",
+          "Default AI service is temporarily unavailable.",
+        ),
+      );
 
       const res = await request(app)
         .post("/api/ai")

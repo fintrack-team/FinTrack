@@ -1,4 +1,4 @@
-import { jest } from "@jest/globals";
+import { vi } from "vitest";
 import { z } from "zod";
 import { Prisma } from "@prisma/client";
 import {
@@ -8,8 +8,8 @@ import {
 
 function makeRes() {
   const res = {
-    status: jest.fn(),
-    json: jest.fn(),
+    status: vi.fn(),
+    json: vi.fn(),
   };
   res.status.mockReturnValue(res);
   res.json.mockReturnValue(res);
@@ -35,7 +35,7 @@ describe("AppError", () => {
 
 describe("errorHandler", () => {
   const req = {} as never;
-  const next = jest.fn() as never;
+  const next = vi.fn() as never;
 
   it("AppError → uses statusCode and message from error", () => {
     const res = makeRes();

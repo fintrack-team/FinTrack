@@ -1,33 +1,33 @@
-import { jest } from "@jest/globals";
+import { vi } from "vitest";
 
-const mockCustomersCreate = jest.fn<() => Promise<unknown>>();
-const mockCheckoutCreate = jest.fn<() => Promise<unknown>>();
-const mockConstructEvent = jest.fn<() => unknown>();
-const logSecurityEvent = jest.fn<() => void>();
+const mockCustomersCreate = vi.fn<() => Promise<unknown>>();
+const mockCheckoutCreate = vi.fn<() => Promise<unknown>>();
+const mockConstructEvent = vi.fn<() => unknown>();
+const logSecurityEvent = vi.fn<() => void>();
 
 const mockPrisma = {
   user: {
-    findUnique: jest.fn<() => Promise<unknown>>(),
-    update: jest.fn<() => Promise<unknown>>(),
+    findUnique: vi.fn<() => Promise<unknown>>(),
+    update: vi.fn<() => Promise<unknown>>(),
   },
   donationPayment: {
-    upsert: jest.fn<() => Promise<unknown>>(),
-    findUnique: jest.fn<() => Promise<unknown>>(),
-    updateMany: jest.fn<() => Promise<unknown>>(),
+    upsert: vi.fn<() => Promise<unknown>>(),
+    findUnique: vi.fn<() => Promise<unknown>>(),
+    updateMany: vi.fn<() => Promise<unknown>>(),
   },
   stripeWebhookEvent: {
-    create: jest.fn<() => Promise<unknown>>(),
+    create: vi.fn<() => Promise<unknown>>(),
   },
   $transaction:
-    jest.fn<(cb: (tx: unknown) => Promise<unknown>) => Promise<unknown>>(),
+    vi.fn<(cb: (tx: unknown) => Promise<unknown>) => Promise<unknown>>(),
 };
 
 describe("Donation service", () => {
   beforeEach(() => {
-    jest.resetModules();
-    jest.clearAllMocks();
+    vi.resetModules();
+    vi.clearAllMocks();
 
-    jest.unstable_mockModule("../../../src/config/env.js", () => ({
+    vi.doMock("../../../src/config/env.js", () => ({
       ENV: {
         STRIPE_SECRET_KEY: "sk_test_123",
         STRIPE_WEBHOOK_SECRET: "whsec_123",
@@ -40,15 +40,15 @@ describe("Donation service", () => {
       },
     }));
 
-    jest.unstable_mockModule("../../../src/prisma/client.js", () => ({
+    vi.doMock("../../../src/prisma/client.js", () => ({
       prisma: mockPrisma,
     }));
 
-    jest.unstable_mockModule("../../../src/utils/authSecurity.js", () => ({
+    vi.doMock("../../../src/utils/authSecurity.js", () => ({
       logSecurityEvent,
     }));
 
-    jest.unstable_mockModule("stripe", () => ({
+    vi.doMock("stripe", () => ({
       default: class Stripe {
         customers = {
           create: mockCustomersCreate,
@@ -147,10 +147,10 @@ describe("Donation service", () => {
       async (callback: (tx: unknown) => Promise<unknown>) => {
         const tx = {
           donationPayment: {
-            upsert: jest.fn<() => Promise<unknown>>().mockResolvedValue({}),
+            upsert: vi.fn<() => Promise<unknown>>().mockResolvedValue({}),
           },
           user: {
-            update: jest.fn<() => Promise<unknown>>().mockResolvedValue({}),
+            update: vi.fn<() => Promise<unknown>>().mockResolvedValue({}),
           },
         };
         return callback(tx as never);

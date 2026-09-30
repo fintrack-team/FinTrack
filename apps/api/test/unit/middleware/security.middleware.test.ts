@@ -1,12 +1,12 @@
-import { jest } from "@jest/globals";
+import { vi } from "vitest";
 
 describe("Security middleware", () => {
   beforeEach(() => {
-    jest.resetModules();
+    vi.resetModules();
   });
 
   it("calls next with error when no CSRF token on mutation request in production", async () => {
-    jest.unstable_mockModule("../../../src/config/env.js", () => ({
+    vi.doMock("../../../src/config/env.js", () => ({
       ENV: {
         NODE_ENV: "production",
         CSRF_SECRET: "test-secret-for-csrf",
@@ -15,7 +15,7 @@ describe("Security middleware", () => {
 
     const { doubleCsrfProtection } =
       await import("../../../src/middleware/csrf.js");
-    const next = jest.fn();
+    const next = vi.fn();
 
     doubleCsrfProtection(
       {
@@ -24,7 +24,7 @@ describe("Security middleware", () => {
         headers: {},
         cookies: {},
       } as never,
-      { cookie: jest.fn() } as never,
+      { cookie: vi.fn() } as never,
       next,
     );
 
@@ -35,7 +35,7 @@ describe("Security middleware", () => {
   });
 
   it("skips CSRF for Stripe webhook path", async () => {
-    jest.unstable_mockModule("../../../src/config/env.js", () => ({
+    vi.doMock("../../../src/config/env.js", () => ({
       ENV: {
         NODE_ENV: "production",
         CSRF_SECRET: "test-secret-for-csrf",
@@ -44,7 +44,7 @@ describe("Security middleware", () => {
 
     const { doubleCsrfProtection } =
       await import("../../../src/middleware/csrf.js");
-    const next = jest.fn();
+    const next = vi.fn();
 
     doubleCsrfProtection(
       {
@@ -53,7 +53,7 @@ describe("Security middleware", () => {
         headers: {},
         cookies: {},
       } as never,
-      { cookie: jest.fn() } as never,
+      { cookie: vi.fn() } as never,
       next,
     );
 
@@ -61,17 +61,17 @@ describe("Security middleware", () => {
   });
 
   it("falls back to token role when DB role lookup fails", async () => {
-    const findUnique = jest
+    const findUnique = vi
       .fn<() => Promise<unknown>>()
       .mockRejectedValue(new Error("db down"));
 
-    jest.unstable_mockModule("../../../src/config/env.js", () => ({
+    vi.doMock("../../../src/config/env.js", () => ({
       ENV: {
         NODE_ENV: "production",
       },
     }));
 
-    jest.unstable_mockModule("../../../src/prisma/client.js", () => ({
+    vi.doMock("../../../src/prisma/client.js", () => ({
       prisma: {
         user: {
           findUnique,
@@ -80,7 +80,7 @@ describe("Security middleware", () => {
     }));
 
     const { requireRole } = await import("../../../src/middleware/authz.js");
-    const next = jest.fn();
+    const next = vi.fn();
 
     const middleware = requireRole(["ADMIN"]);
 
@@ -108,15 +108,15 @@ describe("Security middleware", () => {
       await import("../../../src/middleware/errorHandler.js");
 
     const res = {
-      status: jest.fn().mockReturnThis(),
-      json: jest.fn().mockReturnThis(),
+      status: vi.fn().mockReturnThis(),
+      json: vi.fn().mockReturnThis(),
     };
 
     errorHandler(
       new AppError("Forbidden", 403, { reason: "role" }),
       {} as never,
       res as never,
-      jest.fn(),
+      vi.fn(),
     );
 
     expect(res.status).toHaveBeenCalledWith(403);

@@ -1,4 +1,4 @@
-import { jest } from "@jest/globals";
+import { vi } from "vitest";
 import request from "supertest";
 import { Prisma } from "@prisma/client";
 
@@ -6,35 +6,29 @@ import type { app as AppType } from "../../src/app.js";
 import type * as AuthServiceTypes from "../../src/modules/auth/service.js";
 import type * as TransactionServiceTypes from "../../src/modules/transaction/service.js";
 
-// Mock objects are built once at module scope: jest may call a mock factory
-// more than once (it does on Linux), and a fresh object per call would leave
-// the test configuring a different jest.fn than the one the app calls.
 const authServiceModuleMock = {
-  findSessionById: jest.fn(),
-  findSessionByTokenHash: jest.fn(),
-  revokeSessionFamily: jest.fn(),
-  revokeSession: jest.fn(),
-  rotateSession: jest.fn(),
-  createSession: jest.fn(),
-  logoutByTokenHash: jest.fn(),
-  revokeAllUserSessions: jest.fn(),
+  findSessionById: vi.fn(),
+  findSessionByTokenHash: vi.fn(),
+  revokeSessionFamily: vi.fn(),
+  revokeSession: vi.fn(),
+  rotateSession: vi.fn(),
+  createSession: vi.fn(),
+  logoutByTokenHash: vi.fn(),
+  revokeAllUserSessions: vi.fn(),
 };
-jest.unstable_mockModule(
-  "../../src/modules/auth/service.js",
-  () => authServiceModuleMock,
-);
+vi.mock("../../src/modules/auth/service.js", () => authServiceModuleMock);
 
 const transactionServiceModuleMock = {
-  getAllTransactions: jest.fn(),
-  getTransactionsPerPage: jest.fn(),
-  getTransaction: jest.fn(),
-  createTransaction: jest.fn(),
-  updateTransaction: jest.fn(),
-  deleteTransaction: jest.fn(),
-  importMonobankTransactions: jest.fn(),
-  deleteAllMonobankTransactions: jest.fn(),
+  getAllTransactions: vi.fn(),
+  getTransactionsPerPage: vi.fn(),
+  getTransaction: vi.fn(),
+  createTransaction: vi.fn(),
+  updateTransaction: vi.fn(),
+  deleteTransaction: vi.fn(),
+  importMonobankTransactions: vi.fn(),
+  deleteAllMonobankTransactions: vi.fn(),
 };
-jest.unstable_mockModule(
+vi.mock(
   "../../src/modules/transaction/service.js",
   () => transactionServiceModuleMock,
 );
@@ -69,8 +63,8 @@ describe("Performance Smoke Tests", () => {
   let token: string;
 
   beforeEach(() => {
-    jest.resetAllMocks();
-    jest.mocked(authService.findSessionById).mockResolvedValue({
+    vi.resetAllMocks();
+    vi.mocked(authService.findSessionById).mockResolvedValue({
       sessionId: SESSION_ID,
       userId: USER_ID,
       revokedAt: null,
@@ -108,9 +102,9 @@ describe("Performance Smoke Tests", () => {
     }
 
     it("GET /api/transactions p95 within budget", async () => {
-      jest
-        .mocked(transactionService.getAllTransactions)
-        .mockResolvedValue({ data: [] });
+      vi.mocked(transactionService.getAllTransactions).mockResolvedValue({
+        data: [],
+      });
 
       const latencies = await measureLatencies(() =>
         request(app)
@@ -123,9 +117,9 @@ describe("Performance Smoke Tests", () => {
     });
 
     it("GET /api/summary p95 within budget", async () => {
-      jest
-        .mocked(transactionService.getAllTransactions)
-        .mockResolvedValue({ data: [] });
+      vi.mocked(transactionService.getAllTransactions).mockResolvedValue({
+        data: [],
+      });
 
       const latencies = await measureLatencies(() =>
         request(app)
@@ -149,9 +143,9 @@ describe("Performance Smoke Tests", () => {
 
   describe(`Concurrency: ${CONCURRENCY_COUNT} simultaneous requests`, () => {
     it("handles concurrent GET /api/transactions without errors", async () => {
-      jest
-        .mocked(transactionService.getAllTransactions)
-        .mockResolvedValue({ data: [] });
+      vi.mocked(transactionService.getAllTransactions).mockResolvedValue({
+        data: [],
+      });
 
       const responses = await Promise.all(
         Array.from({ length: CONCURRENCY_COUNT }, () =>
@@ -165,7 +159,7 @@ describe("Performance Smoke Tests", () => {
     });
 
     it("handles concurrent POST /api/transactions without race conditions", async () => {
-      jest.mocked(transactionService.createTransaction).mockResolvedValue({
+      vi.mocked(transactionService.createTransaction).mockResolvedValue({
         id: "tx-concurrent",
         title: "Test",
         type: "EXPENSE" as const,
@@ -201,7 +195,7 @@ describe("Performance Smoke Tests", () => {
     });
 
     it("concurrent auth refresh rotation does not error", async () => {
-      jest.mocked(authService.findSessionByTokenHash).mockResolvedValue(null);
+      vi.mocked(authService.findSessionByTokenHash).mockResolvedValue(null);
 
       const responses = await Promise.all(
         Array.from({ length: CONCURRENCY_COUNT }, () =>
@@ -228,7 +222,7 @@ describe("Performance Smoke Tests", () => {
     });
 
     it("IDOR: service called with correct userId scope", async () => {
-      jest.mocked(transactionService.getTransaction).mockResolvedValue(null);
+      vi.mocked(transactionService.getTransaction).mockResolvedValue(null);
 
       const attackerToken = generateAccessToken({
         id: "11111111-1111-4111-8111-111111111111",
@@ -239,7 +233,7 @@ describe("Performance Smoke Tests", () => {
         sessionId: SESSION_ID,
       });
 
-      jest.mocked(authService.findSessionById).mockResolvedValue({
+      vi.mocked(authService.findSessionById).mockResolvedValue({
         sessionId: SESSION_ID,
         userId: "11111111-1111-4111-8111-111111111111",
         revokedAt: null,
@@ -252,9 +246,7 @@ describe("Performance Smoke Tests", () => {
 
       expect(res.status).toBe(404);
       // Service must be called with attacker's userId, not victim's
-      expect(
-        jest.mocked(transactionService.getTransaction),
-      ).toHaveBeenCalledWith(
+      expect(vi.mocked(transactionService.getTransaction)).toHaveBeenCalledWith(
         "22222222-2222-4222-8222-222222222222",
         "11111111-1111-4111-8111-111111111111",
       );

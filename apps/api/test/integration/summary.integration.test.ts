@@ -1,4 +1,4 @@
-import { jest } from "@jest/globals";
+import { vi } from "vitest";
 import request from "supertest";
 import { Prisma } from "@prisma/client";
 
@@ -6,35 +6,29 @@ import type { app as AppType } from "../../src/app.js";
 import type * as AuthServiceTypes from "../../src/modules/auth/service.js";
 import type * as TransactionServiceTypes from "../../src/modules/transaction/service.js";
 
-// Mock objects are built once at module scope: jest may call a mock factory
-// more than once (it does on Linux), and a fresh object per call would leave
-// the test configuring a different jest.fn than the one the app calls.
 const authServiceModuleMock = {
-  findSessionById: jest.fn(),
-  findSessionByTokenHash: jest.fn(),
-  revokeSessionFamily: jest.fn(),
-  revokeSession: jest.fn(),
-  rotateSession: jest.fn(),
-  createSession: jest.fn(),
-  logoutByTokenHash: jest.fn(),
-  revokeAllUserSessions: jest.fn(),
+  findSessionById: vi.fn(),
+  findSessionByTokenHash: vi.fn(),
+  revokeSessionFamily: vi.fn(),
+  revokeSession: vi.fn(),
+  rotateSession: vi.fn(),
+  createSession: vi.fn(),
+  logoutByTokenHash: vi.fn(),
+  revokeAllUserSessions: vi.fn(),
 };
-jest.unstable_mockModule(
-  "../../src/modules/auth/service.js",
-  () => authServiceModuleMock,
-);
+vi.mock("../../src/modules/auth/service.js", () => authServiceModuleMock);
 
 const transactionServiceModuleMock = {
-  getAllTransactions: jest.fn(),
-  getTransactionsPerPage: jest.fn(),
-  getTransaction: jest.fn(),
-  createTransaction: jest.fn(),
-  updateTransaction: jest.fn(),
-  deleteTransaction: jest.fn(),
-  importMonobankTransactions: jest.fn(),
-  deleteAllMonobankTransactions: jest.fn(),
+  getAllTransactions: vi.fn(),
+  getTransactionsPerPage: vi.fn(),
+  getTransaction: vi.fn(),
+  createTransaction: vi.fn(),
+  updateTransaction: vi.fn(),
+  deleteTransaction: vi.fn(),
+  importMonobankTransactions: vi.fn(),
+  deleteAllMonobankTransactions: vi.fn(),
 };
-jest.unstable_mockModule(
+vi.mock(
   "../../src/modules/transaction/service.js",
   () => transactionServiceModuleMock,
 );
@@ -100,8 +94,8 @@ describe("Summary Integration", () => {
   let token: string;
 
   beforeEach(() => {
-    jest.resetAllMocks();
-    jest.mocked(authService.findSessionById).mockResolvedValue({
+    vi.resetAllMocks();
+    vi.mocked(authService.findSessionById).mockResolvedValue({
       sessionId: SESSION_ID,
       userId: USER_ID,
       revokedAt: null,
@@ -124,9 +118,9 @@ describe("Summary Integration", () => {
     });
 
     it("returns 200 with summary for transactions", async () => {
-      jest
-        .mocked(transactionService.getAllTransactions)
-        .mockResolvedValue({ data: [incomeTx, outcomeTx] });
+      vi.mocked(transactionService.getAllTransactions).mockResolvedValue({
+        data: [incomeTx, outcomeTx],
+      });
       const res = await request(app)
         .get("/api/summary")
         .set("Cookie", [`fintrack_access_token=${token}`]);
@@ -135,9 +129,9 @@ describe("Summary Integration", () => {
     });
 
     it("returns 200 with empty summary when no transactions", async () => {
-      jest
-        .mocked(transactionService.getAllTransactions)
-        .mockResolvedValue({ data: [] });
+      vi.mocked(transactionService.getAllTransactions).mockResolvedValue({
+        data: [],
+      });
       const res = await request(app)
         .get("/api/summary")
         .set("Cookie", [`fintrack_access_token=${token}`]);
@@ -146,28 +140,28 @@ describe("Summary Integration", () => {
     });
 
     it("filters by source=MANUAL", async () => {
-      jest
-        .mocked(transactionService.getAllTransactions)
-        .mockResolvedValue({ data: [outcomeTx] });
+      vi.mocked(transactionService.getAllTransactions).mockResolvedValue({
+        data: [outcomeTx],
+      });
       const res = await request(app)
         .get("/api/summary?source=MANUAL")
         .set("Cookie", [`fintrack_access_token=${token}`]);
       expect(res.status).toBe(200);
       expect(
-        jest.mocked(transactionService.getAllTransactions),
+        vi.mocked(transactionService.getAllTransactions),
       ).toHaveBeenCalledWith(USER_ID, "MANUAL");
     });
 
     it("filters by source=MONOBANK", async () => {
-      jest
-        .mocked(transactionService.getAllTransactions)
-        .mockResolvedValue({ data: [] });
+      vi.mocked(transactionService.getAllTransactions).mockResolvedValue({
+        data: [],
+      });
       const res = await request(app)
         .get("/api/summary?source=MONOBANK")
         .set("Cookie", [`fintrack_access_token=${token}`]);
       expect(res.status).toBe(200);
       expect(
-        jest.mocked(transactionService.getAllTransactions),
+        vi.mocked(transactionService.getAllTransactions),
       ).toHaveBeenCalledWith(USER_ID, "MONOBANK");
     });
 
@@ -179,9 +173,9 @@ describe("Summary Integration", () => {
     });
 
     it("balance = income - outcome", async () => {
-      jest
-        .mocked(transactionService.getAllTransactions)
-        .mockResolvedValue({ data: [incomeTx, outcomeTx] });
+      vi.mocked(transactionService.getAllTransactions).mockResolvedValue({
+        data: [incomeTx, outcomeTx],
+      });
       const res = await request(app)
         .get("/api/summary")
         .set("Cookie", [`fintrack_access_token=${token}`]);
@@ -191,9 +185,9 @@ describe("Summary Integration", () => {
 
     it("balance is 0 when income equals outcome", async () => {
       const equalOutcome = { ...outcomeTx, amount: new Prisma.Decimal(1000) };
-      jest
-        .mocked(transactionService.getAllTransactions)
-        .mockResolvedValue({ data: [incomeTx, equalOutcome] });
+      vi.mocked(transactionService.getAllTransactions).mockResolvedValue({
+        data: [incomeTx, equalOutcome],
+      });
       const res = await request(app)
         .get("/api/summary")
         .set("Cookie", [`fintrack_access_token=${token}`]);
@@ -202,8 +196,7 @@ describe("Summary Integration", () => {
     });
 
     it("consistent with transaction data after create", async () => {
-      jest
-        .mocked(transactionService.getAllTransactions)
+      vi.mocked(transactionService.getAllTransactions)
         .mockResolvedValueOnce({ data: [incomeTx] })
         .mockResolvedValueOnce({ data: [incomeTx, outcomeTx] });
 
@@ -226,9 +219,9 @@ describe("Summary Integration", () => {
     });
 
     it("returns chart data for range=day", async () => {
-      jest
-        .mocked(transactionService.getAllTransactions)
-        .mockResolvedValue({ data: [incomeTx, outcomeTx] });
+      vi.mocked(transactionService.getAllTransactions).mockResolvedValue({
+        data: [incomeTx, outcomeTx],
+      });
       const res = await request(app)
         .get("/api/summary/chart?range=day")
         .set("Cookie", [`fintrack_access_token=${token}`]);
@@ -238,9 +231,9 @@ describe("Summary Integration", () => {
     });
 
     it("returns chart data for range=week", async () => {
-      jest
-        .mocked(transactionService.getAllTransactions)
-        .mockResolvedValue({ data: [incomeTx] });
+      vi.mocked(transactionService.getAllTransactions).mockResolvedValue({
+        data: [incomeTx],
+      });
       const res = await request(app)
         .get("/api/summary/chart?range=week")
         .set("Cookie", [`fintrack_access_token=${token}`]);
@@ -248,9 +241,9 @@ describe("Summary Integration", () => {
     });
 
     it("returns chart data for range=month", async () => {
-      jest
-        .mocked(transactionService.getAllTransactions)
-        .mockResolvedValue({ data: [outcomeTx] });
+      vi.mocked(transactionService.getAllTransactions).mockResolvedValue({
+        data: [outcomeTx],
+      });
       const res = await request(app)
         .get("/api/summary/chart?range=month")
         .set("Cookie", [`fintrack_access_token=${token}`]);
@@ -258,9 +251,9 @@ describe("Summary Integration", () => {
     });
 
     it("returns chart data for range=all", async () => {
-      jest
-        .mocked(transactionService.getAllTransactions)
-        .mockResolvedValue({ data: [] });
+      vi.mocked(transactionService.getAllTransactions).mockResolvedValue({
+        data: [],
+      });
       const res = await request(app)
         .get("/api/summary/chart?range=all")
         .set("Cookie", [`fintrack_access_token=${token}`]);
@@ -282,9 +275,9 @@ describe("Summary Integration", () => {
     });
 
     it("returns empty arrays for zero transactions", async () => {
-      jest
-        .mocked(transactionService.getAllTransactions)
-        .mockResolvedValue({ data: [] });
+      vi.mocked(transactionService.getAllTransactions).mockResolvedValue({
+        data: [],
+      });
       const res = await request(app)
         .get("/api/summary/chart?range=week")
         .set("Cookie", [`fintrack_access_token=${token}`]);

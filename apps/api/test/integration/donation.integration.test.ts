@@ -1,34 +1,28 @@
-import { jest } from "@jest/globals";
+import { vi } from "vitest";
 import request from "supertest";
 
 import type { app as AppType } from "../../src/app.js";
 import type * as AuthServiceTypes from "../../src/modules/auth/service.js";
 import type * as DonationServiceTypes from "../../src/modules/donation/service.js";
 
-// Mock objects are built once at module scope: jest may call a mock factory
-// more than once (it does on Linux), and a fresh object per call would leave
-// the test configuring a different jest.fn than the one the app calls.
 const authServiceModuleMock = {
-  findSessionById: jest.fn(),
-  findSessionByTokenHash: jest.fn(),
-  revokeSessionFamily: jest.fn(),
-  revokeSession: jest.fn(),
-  rotateSession: jest.fn(),
-  createSession: jest.fn(),
-  logoutByTokenHash: jest.fn(),
-  revokeAllUserSessions: jest.fn(),
+  findSessionById: vi.fn(),
+  findSessionByTokenHash: vi.fn(),
+  revokeSessionFamily: vi.fn(),
+  revokeSession: vi.fn(),
+  rotateSession: vi.fn(),
+  createSession: vi.fn(),
+  logoutByTokenHash: vi.fn(),
+  revokeAllUserSessions: vi.fn(),
 };
-jest.unstable_mockModule(
-  "../../src/modules/auth/service.js",
-  () => authServiceModuleMock,
-);
+vi.mock("../../src/modules/auth/service.js", () => authServiceModuleMock);
 
 const donationServiceModuleMock = {
-  createDonationCheckoutSession: jest.fn(),
-  processStripeWebhook: jest.fn(),
-  getDonationLeaderboard: jest.fn(),
+  createDonationCheckoutSession: vi.fn(),
+  processStripeWebhook: vi.fn(),
+  getDonationLeaderboard: vi.fn(),
 };
-jest.unstable_mockModule(
+vi.mock(
   "../../src/modules/donation/service.js",
   () => donationServiceModuleMock,
 );
@@ -67,8 +61,8 @@ describe("Donation Integration", () => {
   );
 
   beforeEach(() => {
-    jest.resetAllMocks();
-    jest.mocked(authService.findSessionById).mockResolvedValue({
+    vi.resetAllMocks();
+    vi.mocked(authService.findSessionById).mockResolvedValue({
       sessionId: SESSION_ID,
       userId: USER_ID,
       revokedAt: null,
@@ -91,12 +85,12 @@ describe("Donation Integration", () => {
     });
 
     it("creates checkout session and returns 201", async () => {
-      jest
-        .mocked(donationService.createDonationCheckoutSession)
-        .mockResolvedValue({
-          checkoutUrl: "https://checkout.stripe.com/session_123",
-          checkoutSessionId: "cs_test_123",
-        });
+      vi.mocked(
+        donationService.createDonationCheckoutSession,
+      ).mockResolvedValue({
+        checkoutUrl: "https://checkout.stripe.com/session_123",
+        checkoutSessionId: "cs_test_123",
+      });
 
       const res = await request(app)
         .post("/api/donations/checkout-session")
@@ -108,12 +102,12 @@ describe("Donation Integration", () => {
     });
 
     it("passes idempotency key from header to service", async () => {
-      jest
-        .mocked(donationService.createDonationCheckoutSession)
-        .mockResolvedValue({
-          checkoutUrl: "https://checkout.stripe.com/session_123",
-          checkoutSessionId: "cs_test_123",
-        });
+      vi.mocked(
+        donationService.createDonationCheckoutSession,
+      ).mockResolvedValue({
+        checkoutUrl: "https://checkout.stripe.com/session_123",
+        checkoutSessionId: "cs_test_123",
+      });
 
       await request(app)
         .post("/api/donations/checkout-session")
@@ -121,24 +115,24 @@ describe("Donation Integration", () => {
         .set("x-idempotency-key", "idem-key-abc123");
 
       expect(
-        jest.mocked(donationService.createDonationCheckoutSession),
+        vi.mocked(donationService.createDonationCheckoutSession),
       ).toHaveBeenCalledWith(USER_ID, "idem-key-abc123");
     });
 
     it("calls service without idempotency key when header missing", async () => {
-      jest
-        .mocked(donationService.createDonationCheckoutSession)
-        .mockResolvedValue({
-          checkoutUrl: "https://checkout.stripe.com/session_abc",
-          checkoutSessionId: "cs_test_abc",
-        });
+      vi.mocked(
+        donationService.createDonationCheckoutSession,
+      ).mockResolvedValue({
+        checkoutUrl: "https://checkout.stripe.com/session_abc",
+        checkoutSessionId: "cs_test_abc",
+      });
 
       await request(app)
         .post("/api/donations/checkout-session")
         .set("Cookie", [`fintrack_access_token=${token}`]);
 
       expect(
-        jest.mocked(donationService.createDonationCheckoutSession),
+        vi.mocked(donationService.createDonationCheckoutSession),
       ).toHaveBeenCalledWith(USER_ID, undefined);
     });
   });
@@ -155,9 +149,10 @@ describe("Donation Integration", () => {
     });
 
     it("processes SUCCEEDED webhook and returns 200", async () => {
-      jest
-        .mocked(donationService.processStripeWebhook)
-        .mockResolvedValue({ received: true, duplicate: false });
+      vi.mocked(donationService.processStripeWebhook).mockResolvedValue({
+        received: true,
+        duplicate: false,
+      });
 
       const res = await request(app)
         .post("/api/donations/webhook")
@@ -171,9 +166,10 @@ describe("Donation Integration", () => {
     });
 
     it("idempotent: duplicate webhook event returns duplicate=true", async () => {
-      jest
-        .mocked(donationService.processStripeWebhook)
-        .mockResolvedValue({ received: true, duplicate: true });
+      vi.mocked(donationService.processStripeWebhook).mockResolvedValue({
+        received: true,
+        duplicate: true,
+      });
 
       const res = await request(app)
         .post("/api/donations/webhook")
@@ -195,9 +191,10 @@ describe("Donation Integration", () => {
         }),
       );
 
-      jest
-        .mocked(donationService.processStripeWebhook)
-        .mockResolvedValue({ received: true, duplicate: false });
+      vi.mocked(donationService.processStripeWebhook).mockResolvedValue({
+        received: true,
+        duplicate: false,
+      });
 
       const res = await request(app)
         .post("/api/donations/webhook")
@@ -210,7 +207,7 @@ describe("Donation Integration", () => {
     });
 
     it("returns error when service throws invalid signature", async () => {
-      jest.mocked(donationService.processStripeWebhook).mockRejectedValue(
+      vi.mocked(donationService.processStripeWebhook).mockRejectedValue(
         Object.assign(new Error("Invalid Stripe webhook signature"), {
           statusCode: 400,
         }),
@@ -228,15 +225,13 @@ describe("Donation Integration", () => {
 
     it("parallel duplicate webhooks all receive a response (no crash)", async () => {
       let callCount = 0;
-      jest
-        .mocked(donationService.processStripeWebhook)
-        .mockImplementation(() => {
-          callCount++;
-          return Promise.resolve({
-            received: true,
-            duplicate: callCount > 1,
-          });
+      vi.mocked(donationService.processStripeWebhook).mockImplementation(() => {
+        callCount++;
+        return Promise.resolve({
+          received: true,
+          duplicate: callCount > 1,
         });
+      });
 
       const requests = Array.from({ length: 5 }, () =>
         request(app)
@@ -253,7 +248,7 @@ describe("Donation Integration", () => {
 
   describe("GET /api/donations/leaderboard", () => {
     it("returns 200 with leaderboard (no auth required)", async () => {
-      jest.mocked(donationService.getDonationLeaderboard).mockResolvedValue([
+      vi.mocked(donationService.getDonationLeaderboard).mockResolvedValue([
         {
           userId: USER_ID,
           name: "Test User",
@@ -271,7 +266,7 @@ describe("Donation Integration", () => {
     });
 
     it("returns empty leaderboard when no donations", async () => {
-      jest.mocked(donationService.getDonationLeaderboard).mockResolvedValue([]);
+      vi.mocked(donationService.getDonationLeaderboard).mockResolvedValue([]);
 
       const res = await request(app).get("/api/donations/leaderboard");
 
@@ -280,10 +275,11 @@ describe("Donation Integration", () => {
     });
 
     it("leaderboard is consistent after SUCCEEDED webhook", async () => {
-      jest
-        .mocked(donationService.processStripeWebhook)
-        .mockResolvedValue({ received: true, duplicate: false });
-      jest.mocked(donationService.getDonationLeaderboard).mockResolvedValue([
+      vi.mocked(donationService.processStripeWebhook).mockResolvedValue({
+        received: true,
+        duplicate: false,
+      });
+      vi.mocked(donationService.getDonationLeaderboard).mockResolvedValue([
         {
           userId: USER_ID,
           name: "Test User",

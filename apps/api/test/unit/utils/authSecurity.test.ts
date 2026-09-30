@@ -1,4 +1,4 @@
-import { jest } from "@jest/globals";
+import { vi } from "vitest";
 import {
   generateSecureToken,
   generateFamilyId,
@@ -85,9 +85,9 @@ describe("extractClientIp", () => {
 
 describe("logSecurityEvent", () => {
   it("calls logger.info with event name and details", () => {
-    const spy = jest
+    const spy = vi
       .spyOn(logger, "info")
-      .mockImplementation(jest.fn() as unknown as typeof logger.info);
+      .mockImplementation(vi.fn() as unknown as typeof logger.info);
 
     logSecurityEvent("user.login", { userId: "abc123" });
 
@@ -101,9 +101,9 @@ describe("logSecurityEvent", () => {
   });
 
   it("works with no details argument (no crash)", () => {
-    const spy = jest
+    const spy = vi
       .spyOn(logger, "info")
-      .mockImplementation(jest.fn() as unknown as typeof logger.info);
+      .mockImplementation(vi.fn() as unknown as typeof logger.info);
     expect(() => logSecurityEvent("test.event")).not.toThrow();
     spy.mockRestore();
   });

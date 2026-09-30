@@ -1,8 +1,8 @@
-import { jest } from "@jest/globals";
+import { vi } from "vitest";
 
-const mockCreateMany = jest.fn();
+const mockCreateMany = vi.fn();
 
-jest.unstable_mockModule("../../../src/prisma/client.js", () => ({
+vi.mock("../../../src/prisma/client.js", () => ({
   prisma: {
     transaction: { createMany: mockCreateMany },
   },
@@ -21,7 +21,7 @@ beforeAll(async () => {
 });
 
 beforeEach(() => {
-  jest.clearAllMocks();
+  vi.clearAllMocks();
 });
 
 const makeTxs = (n: number) =>

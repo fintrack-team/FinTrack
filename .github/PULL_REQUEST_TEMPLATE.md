@@ -36,7 +36,7 @@ Closes # (issue)
 
 Please describe the tests that you ran to verify your changes. Provide instructions so we can reproduce.
 
-- [ ] Unit tests (Jest/Vitest)
+- [ ] Unit tests (Vitest)
 - [ ] Integration tests
 - [ ] Manual testing (screenshots/screencasts encouraged)
 

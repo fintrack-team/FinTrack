@@ -1,4 +1,4 @@
-import { jest } from "@jest/globals";
+import { vi } from "vitest";
 import request from "supertest";
 
 import type { app as AppType } from "../../src/app.js";
@@ -6,39 +6,30 @@ import type * as AdminServiceTypes from "../../src/modules/admin/service.js";
 import type * as AuthServiceTypes from "../../src/modules/auth/service.js";
 import type { generateAccessToken as GenerateAccessTokenType } from "../../src/modules/auth/controller.js";
 
-// Mock objects are built once at module scope: jest may call a mock factory
-// more than once (it does on Linux), and a fresh object per call would leave
-// the test configuring a different jest.fn than the one the app calls.
 const authServiceModuleMock = {
-  findSessionById: jest.fn(),
-  findSessionByTokenHash: jest.fn(),
-  revokeSessionFamily: jest.fn(),
-  revokeSession: jest.fn(),
-  rotateSession: jest.fn(),
-  createSession: jest.fn(),
-  logoutByTokenHash: jest.fn(),
-  revokeAllUserSessions: jest.fn(),
-  loginWithGoogle: jest.fn(),
+  findSessionById: vi.fn(),
+  findSessionByTokenHash: vi.fn(),
+  revokeSessionFamily: vi.fn(),
+  revokeSession: vi.fn(),
+  rotateSession: vi.fn(),
+  createSession: vi.fn(),
+  logoutByTokenHash: vi.fn(),
+  revokeAllUserSessions: vi.fn(),
+  loginWithGoogle: vi.fn(),
 };
-jest.unstable_mockModule(
-  "../../src/modules/auth/service.js",
-  () => authServiceModuleMock,
-);
+vi.mock("../../src/modules/auth/service.js", () => authServiceModuleMock);
 
 const adminServiceModuleMock = {
-  getAdminStats: jest.fn(),
-  reportErrorLog: jest.fn(),
-  revokeUserSessions: jest.fn(),
-  revokeAllSessions: jest.fn(),
-  updateUserRole: jest.fn(),
-  listUsers: jest.fn(),
-  listErrorLogs: jest.fn(),
-  resolveErrorLog: jest.fn(),
+  getAdminStats: vi.fn(),
+  reportErrorLog: vi.fn(),
+  revokeUserSessions: vi.fn(),
+  revokeAllSessions: vi.fn(),
+  updateUserRole: vi.fn(),
+  listUsers: vi.fn(),
+  listErrorLogs: vi.fn(),
+  resolveErrorLog: vi.fn(),
 };
-jest.unstable_mockModule(
-  "../../src/modules/admin/service.js",
-  () => adminServiceModuleMock,
-);
+vi.mock("../../src/modules/admin/service.js", () => adminServiceModuleMock);
 
 let app: typeof AppType;
 let authService: typeof AuthServiceTypes;
@@ -101,10 +92,10 @@ describe("Admin RBAC Integration", () => {
   let adminToken: string;
 
   beforeEach(() => {
-    jest.resetAllMocks();
+    vi.resetAllMocks();
 
     // USER session mock (will be overridden per test when needed)
-    jest.mocked(authService.findSessionById).mockImplementation((sessionId) => {
+    vi.mocked(authService.findSessionById).mockImplementation((sessionId) => {
       if (sessionId === SESSION_ID) {
         return Promise.resolve({
           sessionId: SESSION_ID,
@@ -157,7 +148,7 @@ describe("Admin RBAC Integration", () => {
     });
 
     it("returns 200 for ADMIN role", async () => {
-      jest.mocked(adminService.getAdminStats).mockResolvedValue(statsStub);
+      vi.mocked(adminService.getAdminStats).mockResolvedValue(statsStub);
       const res = await request(app)
         .get("/api/admin/stats")
         .set("Cookie", [`fintrack_access_token=${adminToken}`]);
@@ -180,7 +171,7 @@ describe("Admin RBAC Integration", () => {
     });
 
     it("returns 200 with user list for ADMIN role", async () => {
-      jest.mocked(adminService.listUsers).mockResolvedValue(userListStub);
+      vi.mocked(adminService.listUsers).mockResolvedValue(userListStub);
       const res = await request(app)
         .get("/api/admin/users")
         .set("Cookie", [`fintrack_access_token=${adminToken}`]);
@@ -202,7 +193,7 @@ describe("Admin RBAC Integration", () => {
     });
 
     it("returns 200 for ADMIN role", async () => {
-      jest.mocked(adminService.listErrorLogs).mockResolvedValue([errorLogStub]);
+      vi.mocked(adminService.listErrorLogs).mockResolvedValue([errorLogStub]);
       const res = await request(app)
         .get("/api/admin/error-logs")
         .set("Cookie", [`fintrack_access_token=${adminToken}`]);
@@ -210,23 +201,23 @@ describe("Admin RBAC Integration", () => {
     });
 
     it("filters by status=OPEN for ADMIN role", async () => {
-      jest.mocked(adminService.listErrorLogs).mockResolvedValue([errorLogStub]);
+      vi.mocked(adminService.listErrorLogs).mockResolvedValue([errorLogStub]);
       const res = await request(app)
         .get("/api/admin/error-logs?status=OPEN")
         .set("Cookie", [`fintrack_access_token=${adminToken}`]);
       expect(res.status).toBe(200);
-      expect(jest.mocked(adminService.listErrorLogs)).toHaveBeenCalledWith(
+      expect(vi.mocked(adminService.listErrorLogs)).toHaveBeenCalledWith(
         expect.objectContaining({ status: "OPEN" }),
       );
     });
 
     it("supports pagination for ADMIN role", async () => {
-      jest.mocked(adminService.listErrorLogs).mockResolvedValue([]);
+      vi.mocked(adminService.listErrorLogs).mockResolvedValue([]);
       const res = await request(app)
         .get("/api/admin/error-logs?limit=5&offset=10")
         .set("Cookie", [`fintrack_access_token=${adminToken}`]);
       expect(res.status).toBe(200);
-      expect(jest.mocked(adminService.listErrorLogs)).toHaveBeenCalledWith(
+      expect(vi.mocked(adminService.listErrorLogs)).toHaveBeenCalledWith(
         expect.objectContaining({ limit: 5, offset: 10 }),
       );
     });
@@ -248,9 +239,9 @@ describe("Admin RBAC Integration", () => {
     });
 
     it("returns 200 for ADMIN role", async () => {
-      jest
-        .mocked(adminService.revokeUserSessions)
-        .mockResolvedValue({ revokedCount: 0 });
+      vi.mocked(adminService.revokeUserSessions).mockResolvedValue({
+        revokedCount: 0,
+      });
       const res = await request(app)
         .post(`/api/admin/sessions/revoke-user/${TARGET_USER_ID}`)
         .set("Cookie", [`fintrack_access_token=${adminToken}`]);
@@ -258,9 +249,9 @@ describe("Admin RBAC Integration", () => {
     });
 
     it("idempotent: revoking already-revoked user is safe", async () => {
-      jest
-        .mocked(adminService.revokeUserSessions)
-        .mockResolvedValue({ revokedCount: 0 });
+      vi.mocked(adminService.revokeUserSessions).mockResolvedValue({
+        revokedCount: 0,
+      });
 
       const res1 = await request(app)
         .post(`/api/admin/sessions/revoke-user/${TARGET_USER_ID}`)
@@ -288,9 +279,9 @@ describe("Admin RBAC Integration", () => {
     });
 
     it("returns 200 for ADMIN role", async () => {
-      jest
-        .mocked(adminService.revokeAllSessions)
-        .mockResolvedValue({ revokedCount: 0 });
+      vi.mocked(adminService.revokeAllSessions).mockResolvedValue({
+        revokedCount: 0,
+      });
       const res = await request(app)
         .post("/api/admin/sessions/revoke-all")
         .set("Cookie", [`fintrack_access_token=${adminToken}`]);
@@ -315,7 +306,7 @@ describe("Admin RBAC Integration", () => {
     });
 
     it("returns 200 for ADMIN promoting user", async () => {
-      jest.mocked(adminService.updateUserRole).mockResolvedValue({
+      vi.mocked(adminService.updateUserRole).mockResolvedValue({
         id: TARGET_USER_ID,
         name: "Test User",
         role: "ADMIN",
@@ -364,7 +355,7 @@ describe("Admin RBAC Integration", () => {
     });
 
     it("resolves error log for ADMIN role", async () => {
-      jest.mocked(adminService.resolveErrorLog).mockResolvedValue({
+      vi.mocked(adminService.resolveErrorLog).mockResolvedValue({
         id: ERROR_LOG_ID,
         status: "RESOLVED",
         resolvedAt: new Date(),
@@ -381,7 +372,7 @@ describe("Admin RBAC Integration", () => {
     });
 
     it("reopens error log (resolved: false)", async () => {
-      jest.mocked(adminService.resolveErrorLog).mockResolvedValue({
+      vi.mocked(adminService.resolveErrorLog).mockResolvedValue({
         id: ERROR_LOG_ID,
         status: "OPEN",
         resolvedAt: null,
@@ -415,7 +406,7 @@ describe("Admin RBAC Integration", () => {
     });
 
     it("returns 201 for USER role (no ADMIN required)", async () => {
-      jest.mocked(adminService.reportErrorLog).mockResolvedValue({
+      vi.mocked(adminService.reportErrorLog).mockResolvedValue({
         id: ERROR_LOG_ID,
         title: "Error",
         status: "OPEN",
@@ -429,7 +420,7 @@ describe("Admin RBAC Integration", () => {
     });
 
     it("returns 201 for ADMIN role as well", async () => {
-      jest.mocked(adminService.reportErrorLog).mockResolvedValue({
+      vi.mocked(adminService.reportErrorLog).mockResolvedValue({
         id: ERROR_LOG_ID,
         title: "Admin Error",
         status: "OPEN",

@@ -1,20 +1,20 @@
-import { jest } from "@jest/globals";
+import { vi } from "vitest";
 
-const importMonobankTransactions = jest.fn<() => Promise<unknown>>();
-const deleteAllMonobankTransactions = jest.fn<() => Promise<unknown>>();
+const importMonobankTransactions = vi.fn<() => Promise<unknown>>();
+const deleteAllMonobankTransactions = vi.fn<() => Promise<unknown>>();
 
 function createRes() {
   const res = {
-    status: jest.fn().mockReturnThis(),
-    json: jest.fn().mockReturnThis(),
+    status: vi.fn().mockReturnThis(),
+    json: vi.fn().mockReturnThis(),
   };
   return res;
 }
 
 describe("Monobank controller", () => {
   beforeEach(() => {
-    jest.resetModules();
-    jest.clearAllMocks();
+    vi.resetModules();
+    vi.clearAllMocks();
   });
 
   it("returns 400 when from >= to", async () => {
@@ -30,7 +30,7 @@ describe("Monobank controller", () => {
       },
     };
     const res = createRes();
-    const next = jest.fn();
+    const next = vi.fn();
 
     await fetchMonobankTransactions(req as never, res as never, next);
 
@@ -43,7 +43,7 @@ describe("Monobank controller", () => {
   });
 
   it("enforces cooldown for repeated account requests", async () => {
-    jest.spyOn(global, "fetch").mockResolvedValue({
+    vi.spyOn(global, "fetch").mockResolvedValue({
       ok: true,
       json: async () => ({ accounts: [{ id: "acc-1" }] }),
     } as Response);
@@ -59,12 +59,12 @@ describe("Monobank controller", () => {
     };
 
     const res1 = createRes();
-    const next1 = jest.fn();
+    const next1 = vi.fn();
     await fetchMonobankAccounts(req as never, res1 as never, next1);
     expect(res1.status).toHaveBeenCalledWith(200);
 
     const res2 = createRes();
-    const next2 = jest.fn();
+    const next2 = vi.fn();
     await fetchMonobankAccounts(req as never, res2 as never, next2);
 
     const err = next2.mock.calls[0]?.[0] as {
@@ -76,8 +76,7 @@ describe("Monobank controller", () => {
   });
 
   it("maps fetched statement items into preview payload", async () => {
-    jest
-      .spyOn(global, "fetch")
+    vi.spyOn(global, "fetch")
       .mockResolvedValueOnce({
         ok: true,
         json: async () => ({ accounts: [{ id: "acc-1", currencyCode: 980 }] }),
@@ -113,7 +112,7 @@ describe("Monobank controller", () => {
     };
 
     const res = createRes();
-    const next = jest.fn();
+    const next = vi.fn();
     await fetchMonobankTransactions(req as never, res as never, next);
 
     expect(next).not.toHaveBeenCalled();
@@ -138,13 +137,10 @@ describe("Monobank controller", () => {
   });
 
   it("imports monobank transactions through service", async () => {
-    jest.unstable_mockModule(
-      "../../../src/modules/transaction/service.js",
-      () => ({
-        importMonobankTransactions,
-        deleteAllMonobankTransactions,
-      }),
-    );
+    vi.doMock("../../../src/modules/transaction/service.js", () => ({
+      importMonobankTransactions,
+      deleteAllMonobankTransactions,
+    }));
 
     const controller =
       await import("../../../src/modules/transaction/monobank.controller.js");
@@ -173,7 +169,7 @@ describe("Monobank controller", () => {
     };
 
     const res = createRes();
-    const next = jest.fn();
+    const next = vi.fn();
 
     await controller.importMonobankTransactions(
       req as never,

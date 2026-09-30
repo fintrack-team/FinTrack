@@ -2,8 +2,8 @@ FROM node:24-alpine AS base
 WORKDIR /app
 RUN npm install -g npm@latest && \
     mkdir -p /tmp/patch && cd /tmp/patch && npm init -y && \
-    npm install brace-expansion@^5.0.6 undici@^6.27.0 && \
-    cp -r node_modules/brace-expansion node_modules/undici /usr/local/lib/node_modules/npm/node_modules/ && \
+    npm install brace-expansion@^5.0.9 undici@^6.27.0 ip-address@^10.7.1 && \
+    cp -r node_modules/brace-expansion node_modules/undici node_modules/ip-address /usr/local/lib/node_modules/npm/node_modules/ && \
     rm -rf /tmp/patch
 COPY package.json /tmp/package.json
 RUN corepack enable && \
@@ -40,8 +40,8 @@ FROM node:24-alpine AS runner
 WORKDIR /app
 RUN npm install -g npm@latest && \
     mkdir -p /tmp/patch && cd /tmp/patch && npm init -y && \
-    npm install brace-expansion@^5.0.6 undici@^6.27.0 && \
-    cp -r node_modules/brace-expansion node_modules/undici /usr/local/lib/node_modules/npm/node_modules/ && \
+    npm install brace-expansion@^5.0.9 undici@^6.27.0 ip-address@^10.7.1 && \
+    cp -r node_modules/brace-expansion node_modules/undici node_modules/ip-address /usr/local/lib/node_modules/npm/node_modules/ && \
     rm -rf /tmp/patch
 
 ENV NODE_ENV=production

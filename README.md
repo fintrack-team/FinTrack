@@ -89,7 +89,7 @@ FinTrack is a monorepo (Turborepo) personal finance application that allows user
 | AI         | OpenAI SDK (`openai`) → Groq & Gemini compatible       |
 | Payments   | Stripe                                                 |
 | Docs       | Swagger / OpenAPI (swagger-jsdoc + swagger-ui-express) |
-| Testing    | Jest + Supertest (integration tests)                   |
+| Testing    | Vitest + Supertest (integration tests)                 |
 | Security   | Helmet, CORS, CSRF middleware, express-rate-limit      |
 
 ### Frontend (`apps/web`)
@@ -290,7 +290,7 @@ GitHub Actions runs the following checks on every pull request and push to `mast
 2.  **Format & Lint** — `prettier`, `eslint`, and ToC freshness check.
 3.  **Type check** — `tsc --noEmit` across the monorepo.
 4.  **Security Audit** — `pnpm audit` and dependency review.
-5.  **Tests** — Jest + Supertest API tests and Vitest web tests against a real PostgreSQL container.
+5.  **Tests** — Vitest + Supertest API tests and Vitest web and bot tests against a real PostgreSQL container.
 6.  **Release Gate** — on push to `master`/`main`, `gate.yml` listens for CI completion and dispatches `release.yml` only when CI succeeds; if CI fails, dispatch is skipped and a failure is logged.
 7.  **Release Workflow (`release.yml`)** — also triggers directly on push/PR to `master`/`main`; builds and (on push) publishes images to **GHCR**.
 8.  **Security Scanning** — **Trivy** scans every Docker image for vulnerabilities (CRITICAL, HIGH).

@@ -1,12 +1,12 @@
-import { jest } from "@jest/globals";
+import { vi } from "vitest";
 
-const mockFindMany = jest.fn();
-const mockFindUnique = jest.fn();
-const mockUpdate = jest.fn();
-const mockUpsert = jest.fn();
-const mockDeleteMany = jest.fn();
+const mockFindMany = vi.fn();
+const mockFindUnique = vi.fn();
+const mockUpdate = vi.fn();
+const mockUpsert = vi.fn();
+const mockDeleteMany = vi.fn();
 
-jest.unstable_mockModule("../../../src/prisma/client.js", () => ({
+vi.mock("../../../src/prisma/client.js", () => ({
   prisma: {
     userApiKey: {
       findMany: mockFindMany,
@@ -18,7 +18,7 @@ jest.unstable_mockModule("../../../src/prisma/client.js", () => ({
   },
 }));
 
-jest.unstable_mockModule("../../../src/utils/crypto.js", () => ({
+vi.mock("../../../src/utils/crypto.js", () => ({
   encryptApiKey: (k: string) => `enc:${k}`,
   decryptApiKey: (k: string) => k.replace(/^enc:/, ""),
 }));
@@ -38,7 +38,7 @@ beforeAll(async () => {
 });
 
 beforeEach(() => {
-  jest.clearAllMocks();
+  vi.clearAllMocks();
 });
 
 describe("getUserApiKeys — maskKey", () => {

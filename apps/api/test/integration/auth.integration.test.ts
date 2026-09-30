@@ -1,4 +1,4 @@
-import { jest } from "@jest/globals";
+import { vi } from "vitest";
 import request from "supertest";
 
 import type { app as AppType } from "../../src/app.js";
@@ -11,39 +11,28 @@ import type { generateAccessToken as GenerateAccessTokenType } from "../../src/m
 process.env.TELEGRAM_BOT_TOKEN = "123456:test_bot_token";
 
 const mockVerifyIdToken =
-  jest.fn<
-    () => Promise<{ getPayload: () => Record<string, unknown> | null }>
-  >();
+  vi.fn<() => Promise<{ getPayload: () => Record<string, unknown> | null }>>();
 
-jest.unstable_mockModule("google-auth-library", () => ({
+vi.mock("google-auth-library", () => ({
   OAuth2Client: class {
     verifyIdToken = mockVerifyIdToken;
   },
 }));
 
-// Mock objects are built once at module scope: jest may call a mock factory
-// more than once (it does on Linux), and a fresh object per call would leave
-// the test configuring a different jest.fn than the one the app calls.
 const authServiceMock = {
-  findSessionById: jest.fn(),
-  findSessionByTokenHash: jest.fn(),
-  revokeSessionFamily: jest.fn(),
-  loginWithGoogle: jest.fn(),
-  createSession: jest.fn(),
+  findSessionById: vi.fn(),
+  findSessionByTokenHash: vi.fn(),
+  revokeSessionFamily: vi.fn(),
+  loginWithGoogle: vi.fn(),
+  createSession: vi.fn(),
 };
 const userServiceMock = {
-  getUser: jest.fn(),
+  getUser: vi.fn(),
 };
 
-jest.unstable_mockModule(
-  "../../src/modules/auth/service.js",
-  () => authServiceMock,
-);
+vi.mock("../../src/modules/auth/service.js", () => authServiceMock);
 
-jest.unstable_mockModule(
-  "../../src/modules/user/service.js",
-  () => userServiceMock,
-);
+vi.mock("../../src/modules/user/service.js", () => userServiceMock);
 
 let app: typeof AppType;
 let authService: typeof AuthServiceTypes;
@@ -114,8 +103,8 @@ function makeTelegramWidgetPayload(overrides: Record<string, unknown> = {}) {
 
 describe("Auth Integration", () => {
   beforeEach(() => {
-    jest.resetAllMocks();
-    jest.mocked(authService.findSessionById).mockResolvedValue({
+    vi.resetAllMocks();
+    vi.mocked(authService.findSessionById).mockResolvedValue({
       sessionId: "e6594ef2-7a59-4f7a-99f9-862758f624b2",
       userId: userStub.id,
       revokedAt: null,
@@ -153,10 +142,10 @@ describe("Auth Integration", () => {
       userId: userStub.id,
     };
 
-    jest
-      .mocked(authService.findSessionByTokenHash)
-      .mockResolvedValue(revokedSession);
-    jest.mocked(authService.revokeSessionFamily).mockResolvedValue(undefined);
+    vi.mocked(authService.findSessionByTokenHash).mockResolvedValue(
+      revokedSession,
+    );
+    vi.mocked(authService.revokeSessionFamily).mockResolvedValue(undefined);
 
     const response = await request(app)
       .post("/api/auth/token")
@@ -187,9 +176,9 @@ describe("Auth Integration", () => {
       }),
     });
 
-    jest
-      .mocked(authService.loginWithGoogle)
-      .mockRejectedValue(new AppError("Item already exists", 409));
+    vi.mocked(authService.loginWithGoogle).mockRejectedValue(
+      new AppError("Item already exists", 409),
+    );
 
     const response = await request(app)
       .post("/api/auth/google/exchange")
@@ -210,8 +199,8 @@ describe("Auth Integration", () => {
       }),
     });
 
-    jest.mocked(authService.loginWithGoogle).mockResolvedValue(userStub);
-    jest.mocked(authService.createSession).mockResolvedValue({
+    vi.mocked(authService.loginWithGoogle).mockResolvedValue(userStub);
+    vi.mocked(authService.createSession).mockResolvedValue({
       sessionId: "e6594ef2-7a59-4f7a-99f9-862758f624b2",
       tokenHash: "hash",
       familyId: "fam-1",
@@ -261,7 +250,7 @@ describe("Auth Integration", () => {
       sessionId: "e6594ef2-7a59-4f7a-99f9-862758f624b2",
     });
 
-    jest.mocked(userService.getUser).mockResolvedValue(userStub);
+    vi.mocked(userService.getUser).mockResolvedValue(userStub);
 
     const response = await request(app)
       .get("/api/users/me")

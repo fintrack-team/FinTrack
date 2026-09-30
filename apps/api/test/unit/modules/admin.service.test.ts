@@ -1,9 +1,9 @@
-import { jest } from "@jest/globals";
+import { vi } from "vitest";
 
-const mockUserUpdate = jest.fn();
-const mockSessionUpdateMany = jest.fn();
+const mockUserUpdate = vi.fn();
+const mockSessionUpdateMany = vi.fn();
 
-jest.unstable_mockModule("../../../src/prisma/client.js", () => ({
+vi.mock("../../../src/prisma/client.js", () => ({
   prisma: {
     user: { update: mockUserUpdate },
     session: { updateMany: mockSessionUpdateMany },
@@ -25,7 +25,7 @@ beforeAll(async () => {
 });
 
 beforeEach(() => {
-  jest.clearAllMocks();
+  vi.clearAllMocks();
 });
 
 describe("updateUserRole", () => {

@@ -1,18 +1,18 @@
-import { jest } from "@jest/globals";
+import { vi } from "vitest";
 
 describe("blockInProduction", () => {
   beforeEach(() => {
-    jest.resetModules();
+    vi.resetModules();
   });
 
   it("calls next(AppError(404)) in production", async () => {
-    jest.unstable_mockModule("../../../src/config/env.js", () => ({
+    vi.doMock("../../../src/config/env.js", () => ({
       ENV: { NODE_ENV: "production" },
     }));
 
     const { blockInProduction } =
       await import("../../../src/middleware/envGuards.js");
-    const next = jest.fn();
+    const next = vi.fn();
 
     blockInProduction({} as never, {} as never, next);
 
@@ -27,13 +27,13 @@ describe("blockInProduction", () => {
   });
 
   it("calls next() with no argument in development", async () => {
-    jest.unstable_mockModule("../../../src/config/env.js", () => ({
+    vi.doMock("../../../src/config/env.js", () => ({
       ENV: { NODE_ENV: "development" },
     }));
 
     const { blockInProduction } =
       await import("../../../src/middleware/envGuards.js");
-    const next = jest.fn();
+    const next = vi.fn();
 
     blockInProduction({} as never, {} as never, next);
 
@@ -41,13 +41,13 @@ describe("blockInProduction", () => {
   });
 
   it("calls next() with no argument in test env", async () => {
-    jest.unstable_mockModule("../../../src/config/env.js", () => ({
+    vi.doMock("../../../src/config/env.js", () => ({
       ENV: { NODE_ENV: "test" },
     }));
 
     const { blockInProduction } =
       await import("../../../src/middleware/envGuards.js");
-    const next = jest.fn();
+    const next = vi.fn();
 
     blockInProduction({} as never, {} as never, next);
 

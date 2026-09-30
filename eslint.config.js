@@ -24,7 +24,11 @@ export default defineConfig([
   // API & BOT (Node.js, TypeScript)
   {
     files: ["apps/api/**/*.ts", "apps/bot/**/*.ts"],
-    ignores: ["apps/api/test/**/*.ts", "apps/bot/test/**/*.ts"],
+    ignores: [
+      "apps/api/test/**/*.ts",
+      "apps/bot/test/**/*.ts",
+      "apps/*/vitest.config.ts",
+    ],
     extends: [
       js.configs.recommended,
       tseslint.configs.recommended,
@@ -51,7 +55,7 @@ export default defineConfig([
     },
   },
 
-  // API tests (TypeScript + Jest)
+  // API tests (TypeScript + Vitest)
   {
     files: ["apps/api/test/**/*.ts"],
     extends: [
@@ -64,7 +68,7 @@ export default defineConfig([
       sourceType: "module",
       globals: {
         ...globals.node,
-        ...globals.jest,
+        ...globals.vitest,
       },
       parserOptions: {
         tsconfigRootDir: process.cwd(),
