@@ -10,14 +10,17 @@ export default defineConfig({
     clearMocks: true,
     // Integration suites share one Postgres database.
     fileParallelism: false,
+    // The first import of the app in a cold run transforms the whole module
+    // graph inside beforeAll and can exceed the 10s default.
+    hookTimeout: 60_000,
   },
   resolve: {
     alias: {
       "@fintrack/types": path.resolve(
-        __dirname,
+        import.meta.dirname,
         "../../packages/types/src/index.ts",
       ),
-      ioredis: path.resolve(__dirname, "./test/mocks/ioredis.ts"),
+      ioredis: path.resolve(import.meta.dirname, "./test/mocks/ioredis.ts"),
     },
   },
 });
