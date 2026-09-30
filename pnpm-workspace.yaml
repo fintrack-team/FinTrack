@@ -2,35 +2,33 @@ packages:
   - "apps/*"
   - "packages/*"
 
-# Migrated from package.json "pnpm" block: pnpm v10 no longer reads these from
-# package.json and ignores them there (see https://pnpm.io/settings).
+# pnpm v10 ignores these in package.json (see https://pnpm.io/settings).
 onlyBuiltDependencies:
   - "@prisma/engines"
 
 overrides:
   "@types/express": "4.17.21"
   "@types/express-serve-static-core": "4.19.0"
-  next: "^16.2.4"
+  next: "^16.3.4"
   "@prisma/client": "^6.19.3"
   prisma: "^6.19.3"
-  zod: "^4.3.6"
-  postcss: "^8.5.15"
-  # Security: force patched shell-quote (CVE GHSA-w7jw-789q-3m8p, critical).
-  # Pulled transitively (dev-only) by concurrently@9.2.1, which pins 1.8.3.
-  shell-quote: "^1.8.4"
-  # Security: force patched esbuild (GHSA-gv7w-rqvm-qjhr high, GHSA-g7r4-m6w7-qqqr
-  # low). Pulled transitively (dev-only) via vite/tsx; patched only in >=0.28.1.
-  esbuild: "^0.28.1"
-  # Security: force patched uuid (GHSA-w5hq-g745-h8pq, missing bounds check in
-  # v3/v5/v6). Pulled transitively by next-auth@4, which only uses v4 (unreachable
-  # path), but bumped to clear the advisory. Patched in 11.1.1.
-  uuid: "^11.1.1"
-  # Security: force patched form-data (GHSA-hmw2-7cc7-3qxx high, CRLF injection
-  # via unescaped multipart field names). Pulled transitively (dev-only) by
-  # supertest/@types/supertest and (web) by axios. Patched in 4.0.6.
-  form-data: "^4.0.6"
-  # Security: force patched js-yaml (GHSA-h67p-54hq-rp68 moderate, quadratic DoS
-  # in merge-key handling). Pulled transitively (dev-only) via eslint (4.1.1) and
-  # jest/istanbul (3.14.2); both call only js-yaml.load(), present in v4. Patched
-  # in 4.2.0.
-  js-yaml: "^4.2.0"
+  zod: "^4.5.4"
+  postcss: "^8.5.28"
+  # Security overrides for transitive deps: advisory, then who pulls it in.
+  shell-quote: "^1.9.0" # GHSA-395f-4hp3-45gv, via concurrently (dev)
+  esbuild: "^0.28.1" # GHSA-gv7w-rqvm-qjhr, via vite/tsx (dev)
+  uuid: "^11.1.1" # GHSA-w5hq-g745-h8pq, via next-auth
+  form-data: "^4.0.6" # GHSA-hmw2-7cc7-3qxx, via axios, supertest
+  js-yaml: "^4.3.2" # GHSA-2883-xcg3-v3hh, via eslint, jest (dev)
+  "brace-expansion@>=1 <2": "^1.1.18" # GHSA-rgw5-rvv9-x895, via minimatch (dev)
+  "brace-expansion@>=5 <6": "^5.0.9" # same, via typescript-eslint (dev)
+  fast-uri: "^3.1.7" # GHSA-qw65-cvwx-89v3, via swagger-jsdoc
+  ip-address: "^10.5.1" # GHSA-rpw4-54j3-4h4q, via express-rate-limit
+  qs: "^6.16.0" # GHSA-4mjr-xmp4-gh2g, via express
+  "undici@>=7 <8": "^7.29.1" # GHSA-3wwx-pv8p-q78v, via jsdom (dev)
+  svgo: "^3.3.5" # GHSA-w27v-7q3p-w38r, via @svgr/webpack
+  browserslist: "^4.28.7" # GHSA-c83g-rgw3-j3cx, via babel (dev)
+  baseline-browser-mapping: "^2.11.0" # GHSA-w5vr-8v7q-w6rv, via babel (dev)
+  # GHSA-ggr8-5vv4-36mx. Major bump over prisma@6.19.3's pinned 7.1.5; drop once
+  # a prisma release ships deepmerge-ts 8.x.
+  deepmerge-ts: "^8.0.0"

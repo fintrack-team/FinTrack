@@ -5,8 +5,8 @@
 [![CI](https://github.com/BODMAT/FinTrack/actions/workflows/ci.yml/badge.svg)](https://github.com/BODMAT/FinTrack/actions)
 [![Docker Images](https://img.shields.io/badge/GHCR-Images-blue?logo=docker)](https://github.com/BODMAT/FinTrack/packages)
 [![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
-[![Node](https://img.shields.io/badge/node-22-green)]()
-[![Next.js](https://img.shields.io/badge/Next.js-16-black)]()
+[![Node](https://img.shields.io/badge/node-22-green)](https://nodejs.org)
+[![Next.js](https://img.shields.io/badge/Next.js-16-black)](https://nextjs.org)
 
 ---
 
