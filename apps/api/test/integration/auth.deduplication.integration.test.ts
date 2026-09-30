@@ -152,7 +152,13 @@ describe("Scenario A — manual registration then Google login with same email",
       .post("/api/auth/google/exchange")
       .send({ idToken: "valid_id_token" });
 
-    expect(response.status).toBe(401);
+    expect(response.status).toBe(200);
+    expect(response.headers["set-cookie"]).toEqual(
+      expect.arrayContaining([
+        expect.stringContaining("fintrack_access_token="),
+        expect.stringContaining("fintrack_refresh_token="),
+      ]),
+    );
   });
 
   it("returns 409 when loginWithGoogle reports a conflict", async () => {
@@ -174,7 +180,7 @@ describe("Scenario A — manual registration then Google login with same email",
       .post("/api/auth/google/exchange")
       .send({ idToken: "conflict_token" });
 
-    expect(response.status).toBe(401);
+    expect(response.status).toBe(409);
   });
 });
 

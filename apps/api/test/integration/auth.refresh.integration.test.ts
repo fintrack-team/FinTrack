@@ -48,7 +48,10 @@ describe("Auth Refresh Flow", () => {
       .send({ token: "expired_token" });
 
     expect(response.status).toBe(401);
-    expect(response.body.error).toBe("Invalid refresh token");
+    expect(response.body.error).toBe("Refresh token expired");
+    expect(authService.revokeSession).toHaveBeenCalledWith(
+      "e5af2f58-5f09-4c64-8e13-f5b9323248d0",
+    );
   });
 
   it("revokes family when refresh token is already revoked", async () => {
@@ -72,6 +75,7 @@ describe("Auth Refresh Flow", () => {
       .send({ token: "valid_refresh_token" });
 
     expect(response.status).toBe(401);
-    expect(response.body.error).toBe("Invalid refresh token");
+    expect(response.body.error).toBe("Refresh token reuse detected");
+    expect(authService.revokeSessionFamily).toHaveBeenCalledWith("family-1");
   });
 });

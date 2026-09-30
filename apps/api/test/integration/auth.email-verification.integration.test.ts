@@ -136,7 +136,16 @@ describe("GET /api/auth/verify-email", () => {
       .get("/api/auth/verify-email")
       .query({ token: "valid_token_abc123" });
 
-    expect(response.status).toBe(404);
+    expect(response.status).toBe(302);
+    expect(authService.consumeEmailVerificationToken).toHaveBeenCalledWith(
+      "valid_token_abc123",
+    );
+    expect(response.headers["set-cookie"]).toEqual(
+      expect.arrayContaining([
+        expect.stringContaining("fintrack_access_token="),
+        expect.stringContaining("fintrack_refresh_token="),
+      ]),
+    );
   });
 
   it("returns 400 when token query param is missing", async () => {
@@ -157,7 +166,8 @@ describe("GET /api/auth/verify-email", () => {
       .get("/api/auth/verify-email")
       .query({ token: "bad_token" });
 
-    expect(response.status).toBe(404);
+    expect(response.status).toBe(400);
+    expect(response.body.error).toBe("Invalid or expired verification token");
   });
 
   it("returns 400 when token is expired", async () => {
@@ -169,7 +179,8 @@ describe("GET /api/auth/verify-email", () => {
       .get("/api/auth/verify-email")
       .query({ token: "expired_token" });
 
-    expect(response.status).toBe(404);
+    expect(response.status).toBe(400);
+    expect(response.body.error).toBe("Verification token expired");
   });
 });
 
@@ -200,6 +211,9 @@ describe("POST /api/auth/resend-verification", () => {
     jest
       .mocked(authService.createEmailVerificationToken)
       .mockResolvedValue("fresh_token_xyz");
+    // resetAllMocks() wipes the factory's resolved value; the controller chains
+    // .catch() on the result, so the mock must return a promise again.
+    mailerMock.sendVerificationEmail.mockResolvedValue(undefined);
 
     const response = await request(app)
       .post("/api/auth/resend-verification")
@@ -207,7 +221,11 @@ describe("POST /api/auth/resend-verification", () => {
 
     expect(response.status).toBe(200);
     expect(response.body).toEqual({ sent: true });
-    expect(mailerMock.sendVerificationEmail).not.toHaveBeenCalled();
+    expect(mailerMock.sendVerificationEmail).toHaveBeenCalledWith(
+      "user@example.com",
+      "fresh_token_xyz",
+      "Test User",
+    );
   });
 
   it("silently skips sending when user is already verified", async () => {
