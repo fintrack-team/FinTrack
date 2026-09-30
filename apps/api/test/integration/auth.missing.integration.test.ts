@@ -4,7 +4,10 @@ import request from "supertest";
 import type { app as AppType } from "../../src/app.js";
 import type * as AuthServiceTypes from "../../src/modules/auth/service.js";
 
-jest.unstable_mockModule("../../src/modules/auth/service.js", () => ({
+// Mock objects are built once at module scope: jest may call a mock factory
+// more than once (it does on Linux), and a fresh object per call would leave
+// the test configuring a different jest.fn than the one the app calls.
+const authServiceModuleMock = {
   findSessionById: jest.fn(),
   findSessionByTokenHash: jest.fn(),
   revokeSessionFamily: jest.fn(),
@@ -19,7 +22,11 @@ jest.unstable_mockModule("../../src/modules/auth/service.js", () => ({
   findVerificationTokenByUserId: jest.fn(),
   findAuthMethodByEmail: jest.fn(),
   login: jest.fn(),
-}));
+};
+jest.unstable_mockModule(
+  "../../src/modules/auth/service.js",
+  () => authServiceModuleMock,
+);
 
 let app: typeof AppType;
 let authService: typeof AuthServiceTypes;
@@ -223,7 +230,7 @@ describe("Auth Rate Limiting", () => {
   });
 
   it("returns 429 after exceeding login rate limit", async () => {
-    jest.unstable_mockModule("../../src/modules/auth/service.js", () => ({
+    const _authServiceModuleMock = {
       findSessionById: jest.fn(),
       findSessionByTokenHash: jest.fn(),
       revokeSessionFamily: jest.fn(),
@@ -238,7 +245,11 @@ describe("Auth Rate Limiting", () => {
       findVerificationTokenByUserId: jest.fn(),
       findAuthMethodByEmail: jest.fn(),
       login: jest.fn(),
-    }));
+    };
+    jest.unstable_mockModule(
+      "../../src/modules/auth/service.js",
+      () => _authServiceModuleMock,
+    );
 
     const { app: freshApp } = await import("../../src/app.js");
 
@@ -257,7 +268,7 @@ describe("Auth Rate Limiting", () => {
   });
 
   it("returns 429 after exceeding refresh token rate limit", async () => {
-    jest.unstable_mockModule("../../src/modules/auth/service.js", () => ({
+    const __authServiceModuleMock = {
       findSessionById: jest.fn(),
       findSessionByTokenHash: jest.fn(async () => null),
       revokeSessionFamily: jest.fn(),
@@ -272,7 +283,11 @@ describe("Auth Rate Limiting", () => {
       findVerificationTokenByUserId: jest.fn(),
       findAuthMethodByEmail: jest.fn(),
       login: jest.fn(),
-    }));
+    };
+    jest.unstable_mockModule(
+      "../../src/modules/auth/service.js",
+      () => __authServiceModuleMock,
+    );
 
     const { app: freshApp } = await import("../../src/app.js");
 

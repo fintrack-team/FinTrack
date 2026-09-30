@@ -18,7 +18,10 @@ import type * as AuthServiceTypes from "../../src/modules/auth/service.js";
 import type * as UserServiceTypes from "../../src/modules/user/service.js";
 import type { AppError as AppErrorType } from "../../src/middleware/errorHandler.js";
 
-jest.unstable_mockModule("../../src/modules/auth/service.js", () => ({
+// Mock objects are built once at module scope: jest may call a mock factory
+// more than once (it does on Linux), and a fresh object per call would leave
+// the test configuring a different jest.fn than the one the app calls.
+const authServiceMock = {
   login: jest.fn(),
   loginWithGoogle: jest.fn(),
   createSession: jest.fn(),
@@ -30,20 +33,30 @@ jest.unstable_mockModule("../../src/modules/auth/service.js", () => ({
   consumeEmailVerificationToken: jest.fn(),
   findVerificationTokenByUserId: jest.fn(),
   findAuthMethodByEmail: jest.fn(),
-}));
-
-jest.unstable_mockModule("../../src/modules/user/service.js", () => ({
+};
+const userServiceMock = {
   getUser: jest.fn(),
   createUser: jest.fn(),
   findUserByEmail: jest.fn(),
   deleteAuthMethod: jest.fn(),
-}));
-
-jest.unstable_mockModule("../../src/utils/mailer.js", () => ({
+};
+const mailerModuleMock = {
   sendVerificationEmail: jest
     .fn<() => Promise<void>>()
     .mockResolvedValue(undefined),
-}));
+};
+
+jest.unstable_mockModule(
+  "../../src/modules/auth/service.js",
+  () => authServiceMock,
+);
+
+jest.unstable_mockModule(
+  "../../src/modules/user/service.js",
+  () => userServiceMock,
+);
+
+jest.unstable_mockModule("../../src/utils/mailer.js", () => mailerModuleMock);
 
 let app: typeof AppType;
 let authService: typeof AuthServiceTypes;

@@ -8,7 +8,10 @@ import type * as TransactionServiceTypes from "../../src/modules/transaction/ser
 import type * as DonationServiceTypes from "../../src/modules/donation/service.js";
 import type * as AdminServiceTypes from "../../src/modules/admin/service.js";
 
-jest.unstable_mockModule("../../src/modules/auth/service.js", () => ({
+// Mock objects are built once at module scope: jest may call a mock factory
+// more than once (it does on Linux), and a fresh object per call would leave
+// the test configuring a different jest.fn than the one the app calls.
+const authServiceModuleMock = {
   findSessionById: jest.fn(),
   findSessionByTokenHash: jest.fn(),
   revokeSessionFamily: jest.fn(),
@@ -18,9 +21,13 @@ jest.unstable_mockModule("../../src/modules/auth/service.js", () => ({
   logoutByTokenHash: jest.fn(),
   revokeAllUserSessions: jest.fn(),
   loginWithGoogle: jest.fn(),
-}));
+};
+jest.unstable_mockModule(
+  "../../src/modules/auth/service.js",
+  () => authServiceModuleMock,
+);
 
-jest.unstable_mockModule("../../src/modules/transaction/service.js", () => ({
+const transactionServiceModuleMock = {
   getAllTransactions: jest.fn(),
   getTransactionsPerPage: jest.fn(),
   getTransaction: jest.fn(),
@@ -29,15 +36,23 @@ jest.unstable_mockModule("../../src/modules/transaction/service.js", () => ({
   deleteTransaction: jest.fn(),
   importMonobankTransactions: jest.fn(),
   deleteAllMonobankTransactions: jest.fn(),
-}));
+};
+jest.unstable_mockModule(
+  "../../src/modules/transaction/service.js",
+  () => transactionServiceModuleMock,
+);
 
-jest.unstable_mockModule("../../src/modules/donation/service.js", () => ({
+const donationServiceModuleMock = {
   createDonationCheckoutSession: jest.fn(),
   processStripeWebhook: jest.fn(),
   getDonationLeaderboard: jest.fn(),
-}));
+};
+jest.unstable_mockModule(
+  "../../src/modules/donation/service.js",
+  () => donationServiceModuleMock,
+);
 
-jest.unstable_mockModule("../../src/modules/admin/service.js", () => ({
+const adminServiceModuleMock = {
   getAdminStats: jest.fn(),
   reportErrorLog: jest.fn(),
   revokeUserSessions: jest.fn(),
@@ -46,7 +61,11 @@ jest.unstable_mockModule("../../src/modules/admin/service.js", () => ({
   listUsers: jest.fn(),
   listErrorLogs: jest.fn(),
   resolveErrorLog: jest.fn(),
-}));
+};
+jest.unstable_mockModule(
+  "../../src/modules/admin/service.js",
+  () => adminServiceModuleMock,
+);
 
 let app: typeof AppType;
 let authService: typeof AuthServiceTypes;
