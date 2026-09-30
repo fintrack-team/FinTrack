@@ -9,62 +9,48 @@
  *   5. POST /api/auth/reset-password  — 400 when the token is missing
  *
  * NOTE: like the sibling auth integration suites, the service module is mocked
- * and assertions stay at the HTTP/validation layer. Cross-file ESM module
- * registries are shared in this project's Jest setup, so we don't assert on
- * deep mock interactions (those only bind reliably when a file runs alone).
+ * and assertions stay at the HTTP/validation layer.
  */
 
-import { jest } from "@jest/globals";
+import { vi } from "vitest";
 import request from "supertest";
 
 import type { app as AppType } from "../../src/app.js";
 
-// Mock objects are built once at module scope: jest may call a mock factory
-// more than once (it does on Linux), and a fresh object per call would leave
-// the test configuring a different jest.fn than the one the app calls.
 const authServiceModuleMock = {
-  login: jest.fn(),
-  loginWithGoogle: jest.fn(),
-  createSession: jest.fn(),
-  findSessionById: jest.fn(),
-  findSessionByTokenHash: jest.fn(),
-  revokeSessionFamily: jest.fn(),
-  revokeSession: jest.fn(),
-  createEmailVerificationToken: jest.fn(),
-  consumeEmailVerificationToken: jest.fn(),
-  findVerificationTokenByUserId: jest.fn(),
-  findAuthMethodByEmail: jest.fn(),
-  createPasswordResetToken: jest.fn(),
-  consumePasswordResetToken: jest.fn(),
+  login: vi.fn(),
+  loginWithGoogle: vi.fn(),
+  createSession: vi.fn(),
+  findSessionById: vi.fn(),
+  findSessionByTokenHash: vi.fn(),
+  revokeSessionFamily: vi.fn(),
+  revokeSession: vi.fn(),
+  createEmailVerificationToken: vi.fn(),
+  consumeEmailVerificationToken: vi.fn(),
+  findVerificationTokenByUserId: vi.fn(),
+  findAuthMethodByEmail: vi.fn(),
+  createPasswordResetToken: vi.fn(),
+  consumePasswordResetToken: vi.fn(),
 };
-jest.unstable_mockModule(
-  "../../src/modules/auth/service.js",
-  () => authServiceModuleMock,
-);
+vi.mock("../../src/modules/auth/service.js", () => authServiceModuleMock);
 
 const userServiceModuleMock = {
-  getUser: jest.fn(),
-  createUser: jest.fn(),
-  findUserByEmail: jest.fn(),
-  deleteAuthMethod: jest.fn(),
+  getUser: vi.fn(),
+  createUser: vi.fn(),
+  findUserByEmail: vi.fn(),
+  deleteAuthMethod: vi.fn(),
 };
-jest.unstable_mockModule(
-  "../../src/modules/user/service.js",
-  () => userServiceModuleMock,
-);
+vi.mock("../../src/modules/user/service.js", () => userServiceModuleMock);
 
 const utilsMailerModuleMock = {
-  sendVerificationEmail: jest
+  sendVerificationEmail: vi
     .fn<() => Promise<void>>()
     .mockResolvedValue(undefined),
-  sendPasswordResetEmail: jest
+  sendPasswordResetEmail: vi
     .fn<() => Promise<void>>()
     .mockResolvedValue(undefined),
 };
-jest.unstable_mockModule(
-  "../../src/utils/mailer.js",
-  () => utilsMailerModuleMock,
-);
+vi.mock("../../src/utils/mailer.js", () => utilsMailerModuleMock);
 
 let app: typeof AppType;
 

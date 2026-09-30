@@ -1,27 +1,27 @@
-import { jest } from "@jest/globals";
+import { vi } from "vitest";
 
-const findUnique = jest.fn<() => Promise<unknown>>();
-const update = jest.fn<() => Promise<unknown>>();
-const findFirst = jest.fn<() => Promise<unknown>>();
-const findMany = jest.fn<() => Promise<unknown[]>>();
-const createMany = jest.fn<() => Promise<unknown>>();
+const findUnique = vi.fn<() => Promise<unknown>>();
+const update = vi.fn<() => Promise<unknown>>();
+const findFirst = vi.fn<() => Promise<unknown>>();
+const findMany = vi.fn<() => Promise<unknown[]>>();
+const createMany = vi.fn<() => Promise<unknown>>();
 
-const mockChatCompletionsCreate = jest.fn<() => Promise<unknown>>();
-const decryptApiKey = jest.fn((value: string) => value);
+const mockChatCompletionsCreate = vi.fn<() => Promise<unknown>>();
+const decryptApiKey = vi.fn((value: string) => value);
 
 describe("AI service", () => {
   beforeEach(() => {
-    jest.resetModules();
-    jest.clearAllMocks();
+    vi.resetModules();
+    vi.clearAllMocks();
 
-    jest.unstable_mockModule("../../../src/config/env.js", () => ({
+    vi.doMock("../../../src/config/env.js", () => ({
       ENV: {
         NODE_ENV: "test",
         GROQAPITOKENS: ["default-token"],
       },
     }));
 
-    jest.unstable_mockModule("../../../src/prisma/client.js", () => ({
+    vi.doMock("../../../src/prisma/client.js", () => ({
       prisma: {
         user: {
           findUnique,
@@ -37,11 +37,11 @@ describe("AI service", () => {
       },
     }));
 
-    jest.unstable_mockModule("../../../src/utils/crypto.js", () => ({
+    vi.doMock("../../../src/utils/crypto.js", () => ({
       decryptApiKey,
     }));
 
-    jest.unstable_mockModule("openai", () => ({
+    vi.doMock("openai", () => ({
       default: class OpenAI {
         chat = {
           completions: {

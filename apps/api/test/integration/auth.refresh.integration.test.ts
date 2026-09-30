@@ -1,26 +1,20 @@
-import { jest } from "@jest/globals";
+import { vi } from "vitest";
 import request from "supertest";
 
 import type { app as AppType } from "../../src/app.js";
 import type * as AuthServiceTypes from "../../src/modules/auth/service.js";
 
-// Mock objects are built once at module scope: jest may call a mock factory
-// more than once (it does on Linux), and a fresh object per call would leave
-// the test configuring a different jest.fn than the one the app calls.
 const authServiceMock = {
-  findSessionById: jest.fn(),
-  findSessionByTokenHash: jest.fn(),
-  revokeSessionFamily: jest.fn(),
-  revokeSession: jest.fn(),
-  rotateSession: jest.fn(),
-  createSession: jest.fn(),
-  logoutByTokenHash: jest.fn(),
+  findSessionById: vi.fn(),
+  findSessionByTokenHash: vi.fn(),
+  revokeSessionFamily: vi.fn(),
+  revokeSession: vi.fn(),
+  rotateSession: vi.fn(),
+  createSession: vi.fn(),
+  logoutByTokenHash: vi.fn(),
 };
 
-jest.unstable_mockModule(
-  "../../src/modules/auth/service.js",
-  () => authServiceMock,
-);
+vi.mock("../../src/modules/auth/service.js", () => authServiceMock);
 
 let app: typeof AppType;
 let authService: typeof AuthServiceTypes;
@@ -32,11 +26,11 @@ beforeAll(async () => {
 
 describe("Auth Refresh Flow", () => {
   beforeEach(() => {
-    jest.resetAllMocks();
+    vi.resetAllMocks();
   });
 
   it("returns 401 and revokes expired refresh session", async () => {
-    jest.mocked(authService.findSessionByTokenHash).mockResolvedValue({
+    vi.mocked(authService.findSessionByTokenHash).mockResolvedValue({
       sessionId: "e5af2f58-5f09-4c64-8e13-f5b9323248d0",
       tokenHash: "hash",
       familyId: "family-1",
@@ -63,7 +57,7 @@ describe("Auth Refresh Flow", () => {
   });
 
   it("revokes family when refresh token is already revoked", async () => {
-    jest.mocked(authService.findSessionByTokenHash).mockResolvedValue({
+    vi.mocked(authService.findSessionByTokenHash).mockResolvedValue({
       sessionId: "e5af2f58-5f09-4c64-8e13-f5b9323248d0",
       tokenHash: "hash",
       familyId: "family-1",

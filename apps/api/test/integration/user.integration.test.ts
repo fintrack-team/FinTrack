@@ -1,4 +1,4 @@
-import { jest } from "@jest/globals";
+import { vi } from "vitest";
 import request from "supertest";
 
 import type { app as AppType } from "../../src/app.js";
@@ -7,45 +7,33 @@ import type * as AuthServiceTypes from "../../src/modules/auth/service.js";
 import type { AppError as AppErrorType } from "../../src/middleware/errorHandler.js";
 import type { generateAccessToken as GenerateAccessTokenType } from "../../src/modules/auth/controller.js";
 
-const mockTransaction = jest.fn();
+const mockTransaction = vi.fn();
 
-// Mock objects are built once at module scope: jest may call a mock factory
-// more than once (it does on Linux), and a fresh object per call would leave
-// the test configuring a different jest.fn than the one the app calls.
 const prismaClientModuleMock = {
   prisma: { $transaction: mockTransaction },
 };
-jest.unstable_mockModule(
-  "../../src/prisma/client.js",
-  () => prismaClientModuleMock,
-);
+vi.mock("../../src/prisma/client.js", () => prismaClientModuleMock);
 
 const authServiceModuleMock = {
-  findSessionById: jest.fn(),
-  findSessionByTokenHash: jest.fn(),
-  revokeSessionFamily: jest.fn(),
-  loginWithGoogle: jest.fn(),
-  createSession: jest.fn(),
-  createEmailVerificationToken: jest.fn(),
+  findSessionById: vi.fn(),
+  findSessionByTokenHash: vi.fn(),
+  revokeSessionFamily: vi.fn(),
+  loginWithGoogle: vi.fn(),
+  createSession: vi.fn(),
+  createEmailVerificationToken: vi.fn(),
 };
-jest.unstable_mockModule(
-  "../../src/modules/auth/service.js",
-  () => authServiceModuleMock,
-);
+vi.mock("../../src/modules/auth/service.js", () => authServiceModuleMock);
 
 const userServiceModuleMock = {
-  getUser: jest.fn(),
-  deleteAuthMethod: jest.fn(),
-  updateUser: jest.fn(),
-  updateUserAuthMethods: jest.fn(),
-  deleteUser: jest.fn(),
-  createUser: jest.fn(),
-  findUserByEmail: jest.fn(),
+  getUser: vi.fn(),
+  deleteAuthMethod: vi.fn(),
+  updateUser: vi.fn(),
+  updateUserAuthMethods: vi.fn(),
+  deleteUser: vi.fn(),
+  createUser: vi.fn(),
+  findUserByEmail: vi.fn(),
 };
-jest.unstable_mockModule(
-  "../../src/modules/user/service.js",
-  () => userServiceModuleMock,
-);
+vi.mock("../../src/modules/user/service.js", () => userServiceModuleMock);
 
 let app: typeof AppType;
 let authService: typeof AuthServiceTypes;
@@ -85,7 +73,7 @@ const userStub = {
 
 describe("User Integration", () => {
   beforeEach(() => {
-    jest.resetAllMocks();
+    vi.resetAllMocks();
     mockTransaction.mockImplementation(
       async (fn: (tx: unknown) => Promise<unknown>) => fn({}),
     );
@@ -104,14 +92,14 @@ describe("User Integration", () => {
       sessionId: "5c8dff72-a6f7-4293-af7a-7c7f6190c020",
     });
 
-    jest.mocked(authService.findSessionById).mockResolvedValue({
+    vi.mocked(authService.findSessionById).mockResolvedValue({
       sessionId: "5c8dff72-a6f7-4293-af7a-7c7f6190c020",
       userId: currentUserId,
       revokedAt: null,
       expiresAt: new Date(Date.now() + 60_000),
     });
 
-    jest.mocked(userService.deleteAuthMethod).mockResolvedValue(undefined);
+    vi.mocked(userService.deleteAuthMethod).mockResolvedValue(undefined);
 
     const response = await request(app)
       .delete(`/api/users/me/auth-methods/${authMethodId}`)
@@ -133,16 +121,16 @@ describe("User Integration", () => {
       sessionId: "97552032-a5b4-4be3-90f8-b2e9f22ab44f",
     });
 
-    jest.mocked(authService.findSessionById).mockResolvedValue({
+    vi.mocked(authService.findSessionById).mockResolvedValue({
       sessionId: "97552032-a5b4-4be3-90f8-b2e9f22ab44f",
       userId: currentUserId,
       revokedAt: null,
       expiresAt: new Date(Date.now() + 60_000),
     });
 
-    jest
-      .mocked(userService.deleteAuthMethod)
-      .mockRejectedValue(new AppError("Auth method not found", 404));
+    vi.mocked(userService.deleteAuthMethod).mockRejectedValue(
+      new AppError("Auth method not found", 404),
+    );
 
     const response = await request(app)
       .delete(`/api/users/me/auth-methods/${authMethodId}`)
@@ -153,7 +141,7 @@ describe("User Integration", () => {
 
   describe("GET /api/users/me", () => {
     it("returns 200 with current user", async () => {
-      jest.mocked(userService.getUser).mockResolvedValue(userStub);
+      vi.mocked(userService.getUser).mockResolvedValue(userStub);
 
       const token = generateAccessToken({
         id: USER_ID,
@@ -174,7 +162,7 @@ describe("User Integration", () => {
     });
 
     it("returns 404 when user not found", async () => {
-      jest.mocked(userService.getUser).mockResolvedValue(null);
+      vi.mocked(userService.getUser).mockResolvedValue(null);
 
       const token = generateAccessToken({
         id: USER_ID,
@@ -196,8 +184,8 @@ describe("User Integration", () => {
   describe("PATCH /api/users/me", () => {
     it("returns 200 with updated user", async () => {
       const updatedStub = { ...userStub, name: "New Name" };
-      jest.mocked(userService.updateUser).mockResolvedValue(undefined);
-      jest.mocked(userService.getUser).mockResolvedValue(updatedStub);
+      vi.mocked(userService.updateUser).mockResolvedValue(undefined);
+      vi.mocked(userService.getUser).mockResolvedValue(updatedStub);
 
       const token = generateAccessToken({
         id: USER_ID,
@@ -238,7 +226,7 @@ describe("User Integration", () => {
 
   describe("DELETE /api/users/me", () => {
     it("returns 204 after deleting own account", async () => {
-      jest.mocked(userService.deleteUser).mockResolvedValue(undefined);
+      vi.mocked(userService.deleteUser).mockResolvedValue(undefined);
 
       const token = generateAccessToken({
         id: USER_ID,
@@ -254,7 +242,7 @@ describe("User Integration", () => {
         .set("Cookie", [`fintrack_access_token=${token}`]);
 
       expect(res.status).toBe(204);
-      expect(jest.mocked(userService.deleteUser)).toHaveBeenCalledWith(USER_ID);
+      expect(vi.mocked(userService.deleteUser)).toHaveBeenCalledWith(USER_ID);
     });
   });
 });

@@ -1,38 +1,32 @@
-import { jest } from "@jest/globals";
+import { vi } from "vitest";
 import request from "supertest";
 
 import type { app as AppType } from "../../src/app.js";
 import type * as AuthServiceTypes from "../../src/modules/auth/service.js";
 import type * as TransactionServiceTypes from "../../src/modules/transaction/service.js";
 
-// Mock objects are built once at module scope: jest may call a mock factory
-// more than once (it does on Linux), and a fresh object per call would leave
-// the test configuring a different jest.fn than the one the app calls.
 const authServiceModuleMock = {
-  findSessionById: jest.fn(),
-  findSessionByTokenHash: jest.fn(),
-  revokeSessionFamily: jest.fn(),
-  revokeSession: jest.fn(),
-  rotateSession: jest.fn(),
-  createSession: jest.fn(),
-  logoutByTokenHash: jest.fn(),
+  findSessionById: vi.fn(),
+  findSessionByTokenHash: vi.fn(),
+  revokeSessionFamily: vi.fn(),
+  revokeSession: vi.fn(),
+  rotateSession: vi.fn(),
+  createSession: vi.fn(),
+  logoutByTokenHash: vi.fn(),
 };
-jest.unstable_mockModule(
-  "../../src/modules/auth/service.js",
-  () => authServiceModuleMock,
-);
+vi.mock("../../src/modules/auth/service.js", () => authServiceModuleMock);
 
 const transactionServiceModuleMock = {
-  getAllTransactions: jest.fn(),
-  getTransactionsPerPage: jest.fn(),
-  getTransaction: jest.fn(),
-  createTransaction: jest.fn(),
-  updateTransaction: jest.fn(),
-  deleteTransaction: jest.fn(),
-  importMonobankTransactions: jest.fn(),
-  deleteAllMonobankTransactions: jest.fn(),
+  getAllTransactions: vi.fn(),
+  getTransactionsPerPage: vi.fn(),
+  getTransaction: vi.fn(),
+  createTransaction: vi.fn(),
+  updateTransaction: vi.fn(),
+  deleteTransaction: vi.fn(),
+  importMonobankTransactions: vi.fn(),
+  deleteAllMonobankTransactions: vi.fn(),
 };
-jest.unstable_mockModule(
+vi.mock(
   "../../src/modules/transaction/service.js",
   () => transactionServiceModuleMock,
 );
@@ -62,9 +56,9 @@ describe("Transaction IDOR protection integration", () => {
   const transactionId = "0f98ef84-6e7d-4b88-9cb0-0e3b2d123456";
 
   beforeEach(() => {
-    jest.resetAllMocks();
+    vi.resetAllMocks();
 
-    jest.mocked(authService.findSessionById).mockResolvedValue({
+    vi.mocked(authService.findSessionById).mockResolvedValue({
       sessionId: "e6594ef2-7a59-4f7a-99f9-862758f624b2",
       userId,
       revokedAt: null,
@@ -72,7 +66,7 @@ describe("Transaction IDOR protection integration", () => {
     });
 
     // Simulate transaction owned by another user -> service cannot find it for current user
-    jest.mocked(transactionService.getTransaction).mockResolvedValue(null);
+    vi.mocked(transactionService.getTransaction).mockResolvedValue(null);
   });
 
   function makeUserToken() {

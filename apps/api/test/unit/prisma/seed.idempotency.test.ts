@@ -1,20 +1,20 @@
-import { jest } from "@jest/globals";
+import { vi } from "vitest";
 
-jest.unstable_mockModule("bcrypt", () => ({
-  default: { hash: jest.fn().mockResolvedValue("hashed") },
-  hash: jest.fn().mockResolvedValue("hashed"),
+vi.mock("bcrypt", () => ({
+  default: { hash: vi.fn().mockResolvedValue("hashed") },
+  hash: vi.fn().mockResolvedValue("hashed"),
 }));
 
 const mockUser = { id: "seed-user-id" };
-const mockFindMany = jest.fn();
-const mockFindFirst = jest.fn();
-const mockDeleteMany = jest.fn();
-const mockCreate = jest.fn().mockResolvedValue(mockUser);
-const mockCreateMany = jest.fn().mockResolvedValue({ count: 0 });
-const mockConnect = jest.fn().mockResolvedValue(undefined);
-const mockDisconnect = jest.fn().mockResolvedValue(undefined);
+const mockFindMany = vi.fn();
+const mockFindFirst = vi.fn();
+const mockDeleteMany = vi.fn();
+const mockCreate = vi.fn().mockResolvedValue(mockUser);
+const mockCreateMany = vi.fn().mockResolvedValue({ count: 0 });
+const mockConnect = vi.fn().mockResolvedValue(undefined);
+const mockDisconnect = vi.fn().mockResolvedValue(undefined);
 
-jest.unstable_mockModule("../../../src/prisma/client.js", () => ({
+vi.mock("../../../src/prisma/client.js", () => ({
   prisma: {
     $connect: mockConnect,
     $disconnect: mockDisconnect,
@@ -37,7 +37,7 @@ jest.unstable_mockModule("../../../src/prisma/client.js", () => ({
   },
 }));
 
-jest.unstable_mockModule("../../../src/utils/crypto.js", () => ({
+vi.mock("../../../src/utils/crypto.js", () => ({
   encryptApiKey: (key: string) => `encrypted:${key}`,
 }));
 
@@ -48,7 +48,7 @@ beforeAll(async () => {
 });
 
 beforeEach(() => {
-  jest.clearAllMocks();
+  vi.clearAllMocks();
   mockFindMany.mockResolvedValue([]);
   mockFindFirst.mockResolvedValue(null);
   mockDeleteMany.mockResolvedValue({ count: 0 });

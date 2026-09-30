@@ -1,4 +1,4 @@
-import { jest } from "@jest/globals";
+import { vi } from "vitest";
 import request from "supertest";
 import { Prisma } from "@prisma/client";
 
@@ -6,35 +6,29 @@ import type { app as AppType } from "../../src/app.js";
 import type * as AuthServiceTypes from "../../src/modules/auth/service.js";
 import type * as TransactionServiceTypes from "../../src/modules/transaction/service.js";
 
-// Mock objects are built once at module scope: jest may call a mock factory
-// more than once (it does on Linux), and a fresh object per call would leave
-// the test configuring a different jest.fn than the one the app calls.
 const authServiceModuleMock = {
-  findSessionById: jest.fn(),
-  findSessionByTokenHash: jest.fn(),
-  revokeSessionFamily: jest.fn(),
-  revokeSession: jest.fn(),
-  rotateSession: jest.fn(),
-  createSession: jest.fn(),
-  logoutByTokenHash: jest.fn(),
-  revokeAllUserSessions: jest.fn(),
+  findSessionById: vi.fn(),
+  findSessionByTokenHash: vi.fn(),
+  revokeSessionFamily: vi.fn(),
+  revokeSession: vi.fn(),
+  rotateSession: vi.fn(),
+  createSession: vi.fn(),
+  logoutByTokenHash: vi.fn(),
+  revokeAllUserSessions: vi.fn(),
 };
-jest.unstable_mockModule(
-  "../../src/modules/auth/service.js",
-  () => authServiceModuleMock,
-);
+vi.mock("../../src/modules/auth/service.js", () => authServiceModuleMock);
 
 const transactionServiceModuleMock = {
-  getAllTransactions: jest.fn(),
-  getTransactionsPerPage: jest.fn(),
-  getTransaction: jest.fn(),
-  createTransaction: jest.fn(),
-  updateTransaction: jest.fn(),
-  deleteTransaction: jest.fn(),
-  importMonobankTransactions: jest.fn(),
-  deleteAllMonobankTransactions: jest.fn(),
+  getAllTransactions: vi.fn(),
+  getTransactionsPerPage: vi.fn(),
+  getTransaction: vi.fn(),
+  createTransaction: vi.fn(),
+  updateTransaction: vi.fn(),
+  deleteTransaction: vi.fn(),
+  importMonobankTransactions: vi.fn(),
+  deleteAllMonobankTransactions: vi.fn(),
 };
-jest.unstable_mockModule(
+vi.mock(
   "../../src/modules/transaction/service.js",
   () => transactionServiceModuleMock,
 );
@@ -87,8 +81,8 @@ describe("Transaction Integration", () => {
   let token: string;
 
   beforeEach(() => {
-    jest.resetAllMocks();
-    jest.mocked(authService.findSessionById).mockResolvedValue({
+    vi.resetAllMocks();
+    vi.mocked(authService.findSessionById).mockResolvedValue({
       sessionId: SESSION_ID,
       userId: USER_ID,
       revokedAt: null,
@@ -111,7 +105,7 @@ describe("Transaction Integration", () => {
     });
 
     it("returns all transactions", async () => {
-      jest.mocked(transactionService.getAllTransactions).mockResolvedValue({
+      vi.mocked(transactionService.getAllTransactions).mockResolvedValue({
         data: [txStub],
       });
       const res = await request(app)
@@ -123,9 +117,9 @@ describe("Transaction Integration", () => {
     });
 
     it("returns empty list when no transactions", async () => {
-      jest
-        .mocked(transactionService.getAllTransactions)
-        .mockResolvedValue({ data: [] });
+      vi.mocked(transactionService.getAllTransactions).mockResolvedValue({
+        data: [],
+      });
       const res = await request(app)
         .get("/api/transactions")
         .set("Cookie", [`fintrack_access_token=${token}`]);
@@ -134,28 +128,28 @@ describe("Transaction Integration", () => {
     });
 
     it("filters by source=MANUAL", async () => {
-      jest
-        .mocked(transactionService.getAllTransactions)
-        .mockResolvedValue({ data: [txStub] });
+      vi.mocked(transactionService.getAllTransactions).mockResolvedValue({
+        data: [txStub],
+      });
       const res = await request(app)
         .get("/api/transactions?source=MANUAL")
         .set("Cookie", [`fintrack_access_token=${token}`]);
       expect(res.status).toBe(200);
       expect(
-        jest.mocked(transactionService.getAllTransactions),
+        vi.mocked(transactionService.getAllTransactions),
       ).toHaveBeenCalledWith(USER_ID, "MANUAL");
     });
 
     it("filters by source=MONOBANK", async () => {
-      jest
-        .mocked(transactionService.getAllTransactions)
-        .mockResolvedValue({ data: [monobankTxStub] });
+      vi.mocked(transactionService.getAllTransactions).mockResolvedValue({
+        data: [monobankTxStub],
+      });
       const res = await request(app)
         .get("/api/transactions?source=MONOBANK")
         .set("Cookie", [`fintrack_access_token=${token}`]);
       expect(res.status).toBe(200);
       expect(
-        jest.mocked(transactionService.getAllTransactions),
+        vi.mocked(transactionService.getAllTransactions),
       ).toHaveBeenCalledWith(USER_ID, "MONOBANK");
     });
 
@@ -169,7 +163,7 @@ describe("Transaction Integration", () => {
 
   describe("GET /api/transactions (paginated)", () => {
     it("returns paginated results", async () => {
-      jest.mocked(transactionService.getTransactionsPerPage).mockResolvedValue({
+      vi.mocked(transactionService.getTransactionsPerPage).mockResolvedValue({
         data: [txStub],
         pagination: { page: 1, perPage: 10, total: 1, totalPages: 1 },
       });
@@ -183,7 +177,7 @@ describe("Transaction Integration", () => {
     });
 
     it("returns second page correctly", async () => {
-      jest.mocked(transactionService.getTransactionsPerPage).mockResolvedValue({
+      vi.mocked(transactionService.getTransactionsPerPage).mockResolvedValue({
         data: [],
         pagination: { page: 2, perPage: 10, total: 5, totalPages: 1 },
       });
@@ -192,7 +186,7 @@ describe("Transaction Integration", () => {
         .set("Cookie", [`fintrack_access_token=${token}`]);
       expect(res.status).toBe(200);
       expect(
-        jest.mocked(transactionService.getTransactionsPerPage),
+        vi.mocked(transactionService.getTransactionsPerPage),
       ).toHaveBeenCalledWith(USER_ID, 2, 10, undefined);
     });
 
@@ -220,7 +214,7 @@ describe("Transaction Integration", () => {
 
   describe("GET /api/transactions/:id", () => {
     it("returns transaction by id", async () => {
-      jest.mocked(transactionService.getTransaction).mockResolvedValue(txStub);
+      vi.mocked(transactionService.getTransaction).mockResolvedValue(txStub);
       const res = await request(app)
         .get(`/api/transactions/${TX_ID}`)
         .set("Cookie", [`fintrack_access_token=${token}`]);
@@ -229,7 +223,7 @@ describe("Transaction Integration", () => {
     });
 
     it("returns 404 when transaction not found", async () => {
-      jest.mocked(transactionService.getTransaction).mockResolvedValue(null);
+      vi.mocked(transactionService.getTransaction).mockResolvedValue(null);
       const res = await request(app)
         .get(`/api/transactions/${TX_ID}`)
         .set("Cookie", [`fintrack_access_token=${token}`]);
@@ -238,14 +232,15 @@ describe("Transaction Integration", () => {
 
     it("returns 404 for another user's transaction (IDOR)", async () => {
       // Service returns null because userId filter excludes other user's tx
-      jest.mocked(transactionService.getTransaction).mockResolvedValue(null);
+      vi.mocked(transactionService.getTransaction).mockResolvedValue(null);
       const res = await request(app)
         .get(`/api/transactions/${TX_ID}`)
         .set("Cookie", [`fintrack_access_token=${token}`]);
       expect(res.status).toBe(404);
-      expect(
-        jest.mocked(transactionService.getTransaction),
-      ).toHaveBeenCalledWith(TX_ID, USER_ID);
+      expect(vi.mocked(transactionService.getTransaction)).toHaveBeenCalledWith(
+        TX_ID,
+        USER_ID,
+      );
     });
 
     it("returns 401 without auth", async () => {
@@ -264,9 +259,7 @@ describe("Transaction Integration", () => {
     };
 
     it("creates transaction and returns 201", async () => {
-      jest
-        .mocked(transactionService.createTransaction)
-        .mockResolvedValue(txStub);
+      vi.mocked(transactionService.createTransaction).mockResolvedValue(txStub);
       const res = await request(app)
         .post("/api/transactions")
         .set("Cookie", [`fintrack_access_token=${token}`])
@@ -315,8 +308,8 @@ describe("Transaction Integration", () => {
 
   describe("PATCH /api/transactions/:id", () => {
     it("updates transaction and returns 200", async () => {
-      jest.mocked(transactionService.getTransaction).mockResolvedValue(txStub);
-      jest.mocked(transactionService.updateTransaction).mockResolvedValue({
+      vi.mocked(transactionService.getTransaction).mockResolvedValue(txStub);
+      vi.mocked(transactionService.updateTransaction).mockResolvedValue({
         ...txStub,
         title: "Tea",
       });
@@ -329,7 +322,7 @@ describe("Transaction Integration", () => {
     });
 
     it("returns 404 when transaction not found", async () => {
-      jest.mocked(transactionService.getTransaction).mockResolvedValue(null);
+      vi.mocked(transactionService.getTransaction).mockResolvedValue(null);
       const res = await request(app)
         .patch(`/api/transactions/${TX_ID}`)
         .set("Cookie", [`fintrack_access_token=${token}`])
@@ -338,9 +331,9 @@ describe("Transaction Integration", () => {
     });
 
     it("returns 403 for MONOBANK transaction (read-only)", async () => {
-      jest
-        .mocked(transactionService.getTransaction)
-        .mockResolvedValue(monobankTxStub);
+      vi.mocked(transactionService.getTransaction).mockResolvedValue(
+        monobankTxStub,
+      );
       const res = await request(app)
         .patch(`/api/transactions/${TX_ID}`)
         .set("Cookie", [`fintrack_access_token=${token}`])
@@ -349,7 +342,7 @@ describe("Transaction Integration", () => {
     });
 
     it("returns 404 for another user's transaction (IDOR)", async () => {
-      jest.mocked(transactionService.getTransaction).mockResolvedValue(null);
+      vi.mocked(transactionService.getTransaction).mockResolvedValue(null);
       const attackerToken = generateAccessToken({
         id: OTHER_USER_ID,
         email: "attacker@test.dev",
@@ -358,7 +351,7 @@ describe("Transaction Integration", () => {
         isVerified: true,
         sessionId: SESSION_ID,
       });
-      jest.mocked(authService.findSessionById).mockResolvedValue({
+      vi.mocked(authService.findSessionById).mockResolvedValue({
         sessionId: SESSION_ID,
         userId: OTHER_USER_ID,
         revokedAt: null,
@@ -381,10 +374,8 @@ describe("Transaction Integration", () => {
 
   describe("DELETE /api/transactions/:id", () => {
     it("deletes transaction and returns 204", async () => {
-      jest.mocked(transactionService.getTransaction).mockResolvedValue(txStub);
-      jest
-        .mocked(transactionService.deleteTransaction)
-        .mockResolvedValue(txStub);
+      vi.mocked(transactionService.getTransaction).mockResolvedValue(txStub);
+      vi.mocked(transactionService.deleteTransaction).mockResolvedValue(txStub);
       const res = await request(app)
         .delete(`/api/transactions/${TX_ID}`)
         .set("Cookie", [`fintrack_access_token=${token}`]);
@@ -392,7 +383,7 @@ describe("Transaction Integration", () => {
     });
 
     it("returns 404 when transaction not found", async () => {
-      jest.mocked(transactionService.getTransaction).mockResolvedValue(null);
+      vi.mocked(transactionService.getTransaction).mockResolvedValue(null);
       const res = await request(app)
         .delete(`/api/transactions/${TX_ID}`)
         .set("Cookie", [`fintrack_access_token=${token}`]);
@@ -400,9 +391,9 @@ describe("Transaction Integration", () => {
     });
 
     it("returns 403 for MONOBANK transaction (read-only)", async () => {
-      jest
-        .mocked(transactionService.getTransaction)
-        .mockResolvedValue(monobankTxStub);
+      vi.mocked(transactionService.getTransaction).mockResolvedValue(
+        monobankTxStub,
+      );
       const res = await request(app)
         .delete(`/api/transactions/${TX_ID}`)
         .set("Cookie", [`fintrack_access_token=${token}`]);
@@ -410,14 +401,15 @@ describe("Transaction Integration", () => {
     });
 
     it("returns 404 for another user's transaction (IDOR)", async () => {
-      jest.mocked(transactionService.getTransaction).mockResolvedValue(null);
+      vi.mocked(transactionService.getTransaction).mockResolvedValue(null);
       const res = await request(app)
         .delete(`/api/transactions/${TX_ID}`)
         .set("Cookie", [`fintrack_access_token=${token}`]);
       expect(res.status).toBe(404);
-      expect(
-        jest.mocked(transactionService.getTransaction),
-      ).toHaveBeenCalledWith(TX_ID, USER_ID);
+      expect(vi.mocked(transactionService.getTransaction)).toHaveBeenCalledWith(
+        TX_ID,
+        USER_ID,
+      );
     });
 
     it("returns 401 without auth", async () => {

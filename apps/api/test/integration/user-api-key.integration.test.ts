@@ -1,35 +1,29 @@
-import { jest } from "@jest/globals";
+import { vi } from "vitest";
 import request from "supertest";
 
 import type { app as AppType } from "../../src/app.js";
 import type * as AuthServiceTypes from "../../src/modules/auth/service.js";
 import type * as UserApiKeyServiceTypes from "../../src/modules/user-api-key/service.js";
 
-// Mock objects are built once at module scope: jest may call a mock factory
-// more than once (it does on Linux), and a fresh object per call would leave
-// the test configuring a different jest.fn than the one the app calls.
 const authServiceModuleMock = {
-  findSessionById: jest.fn(),
-  findSessionByTokenHash: jest.fn(),
-  revokeSessionFamily: jest.fn(),
-  revokeSession: jest.fn(),
-  rotateSession: jest.fn(),
-  createSession: jest.fn(),
-  logoutByTokenHash: jest.fn(),
-  revokeAllUserSessions: jest.fn(),
+  findSessionById: vi.fn(),
+  findSessionByTokenHash: vi.fn(),
+  revokeSessionFamily: vi.fn(),
+  revokeSession: vi.fn(),
+  rotateSession: vi.fn(),
+  createSession: vi.fn(),
+  logoutByTokenHash: vi.fn(),
+  revokeAllUserSessions: vi.fn(),
 };
-jest.unstable_mockModule(
-  "../../src/modules/auth/service.js",
-  () => authServiceModuleMock,
-);
+vi.mock("../../src/modules/auth/service.js", () => authServiceModuleMock);
 
 const userApiKeyServiceModuleMock = {
-  getUserApiKeys: jest.fn(),
-  upsertUserApiKey: jest.fn(),
-  deleteUserApiKey: jest.fn(),
-  toggleUserApiKey: jest.fn(),
+  getUserApiKeys: vi.fn(),
+  upsertUserApiKey: vi.fn(),
+  deleteUserApiKey: vi.fn(),
+  toggleUserApiKey: vi.fn(),
 };
-jest.unstable_mockModule(
+vi.mock(
   "../../src/modules/user-api-key/service.js",
   () => userApiKeyServiceModuleMock,
 );
@@ -73,8 +67,8 @@ describe("User API Key Integration", () => {
   let token: string;
 
   beforeEach(() => {
-    jest.resetAllMocks();
-    jest.mocked(authService.findSessionById).mockResolvedValue({
+    vi.resetAllMocks();
+    vi.mocked(authService.findSessionById).mockResolvedValue({
       sessionId: SESSION_ID,
       userId: USER_ID,
       revokedAt: null,
@@ -97,9 +91,7 @@ describe("User API Key Integration", () => {
     });
 
     it("returns user's api keys", async () => {
-      jest
-        .mocked(userApiKeyService.getUserApiKeys)
-        .mockResolvedValue([keyStub]);
+      vi.mocked(userApiKeyService.getUserApiKeys).mockResolvedValue([keyStub]);
 
       const res = await request(app)
         .get("/api/user-api-keys")
@@ -112,7 +104,7 @@ describe("User API Key Integration", () => {
     });
 
     it("returns empty array when user has no keys", async () => {
-      jest.mocked(userApiKeyService.getUserApiKeys).mockResolvedValue([]);
+      vi.mocked(userApiKeyService.getUserApiKeys).mockResolvedValue([]);
 
       const res = await request(app)
         .get("/api/user-api-keys")
@@ -123,17 +115,15 @@ describe("User API Key Integration", () => {
     });
 
     it("only returns own keys (userId scoped to token)", async () => {
-      jest
-        .mocked(userApiKeyService.getUserApiKeys)
-        .mockResolvedValue([keyStub]);
+      vi.mocked(userApiKeyService.getUserApiKeys).mockResolvedValue([keyStub]);
 
       await request(app)
         .get("/api/user-api-keys")
         .set("Cookie", [`fintrack_access_token=${token}`]);
 
-      expect(
-        jest.mocked(userApiKeyService.getUserApiKeys),
-      ).toHaveBeenCalledWith(USER_ID);
+      expect(vi.mocked(userApiKeyService.getUserApiKeys)).toHaveBeenCalledWith(
+        USER_ID,
+      );
     });
   });
 
@@ -149,7 +139,7 @@ describe("User API Key Integration", () => {
     });
 
     it("creates api key and returns 200", async () => {
-      jest.mocked(userApiKeyService.upsertUserApiKey).mockResolvedValue({
+      vi.mocked(userApiKeyService.upsertUserApiKey).mockResolvedValue({
         id: KEY_ID,
         provider: "GROQ",
         isActive: true,
@@ -166,7 +156,7 @@ describe("User API Key Integration", () => {
     });
 
     it("updates existing key (upsert) for same provider", async () => {
-      jest.mocked(userApiKeyService.upsertUserApiKey).mockResolvedValue({
+      vi.mocked(userApiKeyService.upsertUserApiKey).mockResolvedValue({
         id: KEY_ID,
         provider: "GROQ",
         isActive: true,
@@ -179,7 +169,7 @@ describe("User API Key Integration", () => {
         .send({ provider: "GROQ", apiKey: "sk-proj-updated-key-5678" });
 
       expect(
-        jest.mocked(userApiKeyService.upsertUserApiKey),
+        vi.mocked(userApiKeyService.upsertUserApiKey),
       ).toHaveBeenCalledTimes(1);
     });
 
@@ -220,14 +210,14 @@ describe("User API Key Integration", () => {
         sessionId: OTHER_SESSION_ID,
       });
 
-      jest.mocked(authService.findSessionById).mockResolvedValue({
+      vi.mocked(authService.findSessionById).mockResolvedValue({
         sessionId: OTHER_SESSION_ID,
         userId: OTHER_USER_ID,
         revokedAt: null,
         expiresAt: new Date(Date.now() + 60_000),
       });
 
-      jest.mocked(userApiKeyService.upsertUserApiKey).mockResolvedValue({
+      vi.mocked(userApiKeyService.upsertUserApiKey).mockResolvedValue({
         id: "other-key-id",
         provider: "GROQ",
         isActive: true,
@@ -240,7 +230,7 @@ describe("User API Key Integration", () => {
         .send(validBody);
 
       expect(
-        jest.mocked(userApiKeyService.upsertUserApiKey),
+        vi.mocked(userApiKeyService.upsertUserApiKey),
       ).toHaveBeenCalledWith(OTHER_USER_ID, "GROQ", validBody.apiKey);
     });
   });
@@ -252,9 +242,9 @@ describe("User API Key Integration", () => {
     });
 
     it("deletes key and returns 204", async () => {
-      jest
-        .mocked(userApiKeyService.deleteUserApiKey)
-        .mockResolvedValue(undefined);
+      vi.mocked(userApiKeyService.deleteUserApiKey).mockResolvedValue(
+        undefined,
+      );
 
       const res = await request(app)
         .delete("/api/user-api-keys/GROQ")
@@ -262,7 +252,7 @@ describe("User API Key Integration", () => {
 
       expect(res.status).toBe(204);
       expect(
-        jest.mocked(userApiKeyService.deleteUserApiKey),
+        vi.mocked(userApiKeyService.deleteUserApiKey),
       ).toHaveBeenCalledWith(USER_ID, "GROQ");
     });
 
@@ -282,7 +272,7 @@ describe("User API Key Integration", () => {
     });
 
     it("toggles key and returns 200", async () => {
-      jest.mocked(userApiKeyService.toggleUserApiKey).mockResolvedValue({
+      vi.mocked(userApiKeyService.toggleUserApiKey).mockResolvedValue({
         provider: "GROQ",
         isActive: false,
       });
@@ -296,7 +286,7 @@ describe("User API Key Integration", () => {
     });
 
     it("returns 404 when key not found", async () => {
-      jest.mocked(userApiKeyService.toggleUserApiKey).mockResolvedValue(null);
+      vi.mocked(userApiKeyService.toggleUserApiKey).mockResolvedValue(null);
 
       const res = await request(app)
         .patch("/api/user-api-keys/GROQ/toggle")

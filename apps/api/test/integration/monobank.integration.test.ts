@@ -1,4 +1,4 @@
-import { jest } from "@jest/globals";
+import { vi } from "vitest";
 import { randomUUID } from "node:crypto";
 import request from "supertest";
 
@@ -6,35 +6,29 @@ import type { app as AppType } from "../../src/app.js";
 import type * as AuthServiceTypes from "../../src/modules/auth/service.js";
 import type * as TransactionServiceTypes from "../../src/modules/transaction/service.js";
 
-// Mock objects are built once at module scope: jest may call a mock factory
-// more than once (it does on Linux), and a fresh object per call would leave
-// the test configuring a different jest.fn than the one the app calls.
 const authServiceModuleMock = {
-  findSessionById: jest.fn(),
-  findSessionByTokenHash: jest.fn(),
-  revokeSessionFamily: jest.fn(),
-  revokeSession: jest.fn(),
-  rotateSession: jest.fn(),
-  createSession: jest.fn(),
-  logoutByTokenHash: jest.fn(),
-  revokeAllUserSessions: jest.fn(),
+  findSessionById: vi.fn(),
+  findSessionByTokenHash: vi.fn(),
+  revokeSessionFamily: vi.fn(),
+  revokeSession: vi.fn(),
+  rotateSession: vi.fn(),
+  createSession: vi.fn(),
+  logoutByTokenHash: vi.fn(),
+  revokeAllUserSessions: vi.fn(),
 };
-jest.unstable_mockModule(
-  "../../src/modules/auth/service.js",
-  () => authServiceModuleMock,
-);
+vi.mock("../../src/modules/auth/service.js", () => authServiceModuleMock);
 
 const transactionServiceModuleMock = {
-  getAllTransactions: jest.fn(),
-  getTransactionsPerPage: jest.fn(),
-  getTransaction: jest.fn(),
-  createTransaction: jest.fn(),
-  updateTransaction: jest.fn(),
-  deleteTransaction: jest.fn(),
-  importMonobankTransactions: jest.fn(),
-  deleteAllMonobankTransactions: jest.fn(),
+  getAllTransactions: vi.fn(),
+  getTransactionsPerPage: vi.fn(),
+  getTransaction: vi.fn(),
+  createTransaction: vi.fn(),
+  updateTransaction: vi.fn(),
+  deleteTransaction: vi.fn(),
+  importMonobankTransactions: vi.fn(),
+  deleteAllMonobankTransactions: vi.fn(),
 };
-jest.unstable_mockModule(
+vi.mock(
   "../../src/modules/transaction/service.js",
   () => transactionServiceModuleMock,
 );
@@ -107,16 +101,16 @@ beforeAll(async () => {
 
 describe("Monobank Integration", () => {
   beforeEach(() => {
-    jest.resetAllMocks();
-    global.fetch = jest.fn() as typeof fetch;
+    vi.resetAllMocks();
+    global.fetch = vi.fn() as typeof fetch;
   });
 
   afterEach(() => {
-    jest.restoreAllMocks();
+    vi.restoreAllMocks();
   });
 
   function mockAuth(userId: string) {
-    jest.mocked(authService.findSessionById).mockResolvedValue({
+    vi.mocked(authService.findSessionById).mockResolvedValue({
       sessionId: SESSION_ID,
       userId,
       revokedAt: null,
@@ -125,7 +119,7 @@ describe("Monobank Integration", () => {
   }
 
   function mockFetchSuccess(data: unknown) {
-    jest.mocked(global.fetch).mockResolvedValue({
+    vi.mocked(global.fetch).mockResolvedValue({
       ok: true,
       status: 200,
       json: () => Promise.resolve(data),
@@ -133,7 +127,7 @@ describe("Monobank Integration", () => {
   }
 
   function mockFetchError(status: number, message: string) {
-    jest.mocked(global.fetch).mockResolvedValue({
+    vi.mocked(global.fetch).mockResolvedValue({
       ok: false,
       status,
       json: () => Promise.resolve({ errorDescription: message }),
@@ -291,9 +285,9 @@ describe("Monobank Integration", () => {
       mockAuth(userId);
       const token = makeToken(userId);
 
-      jest
-        .mocked(transactionService.importMonobankTransactions)
-        .mockResolvedValue({ imported: 1, skipped: 0, total: 1 });
+      vi.mocked(
+        transactionService.importMonobankTransactions,
+      ).mockResolvedValue({ imported: 1, skipped: 0, total: 1 });
 
       const res = await request(app)
         .post("/api/transactions/monobank/import")
@@ -322,9 +316,9 @@ describe("Monobank Integration", () => {
       mockAuth(userId);
       const token = makeToken(userId);
 
-      jest
-        .mocked(transactionService.importMonobankTransactions)
-        .mockResolvedValue({ imported: 0, skipped: 1, total: 1 });
+      vi.mocked(
+        transactionService.importMonobankTransactions,
+      ).mockResolvedValue({ imported: 0, skipped: 1, total: 1 });
 
       const res = await request(app)
         .post("/api/transactions/monobank/import")
@@ -374,9 +368,9 @@ describe("Monobank Integration", () => {
       mockAuth(userId);
       const token = makeToken(userId);
 
-      jest
-        .mocked(transactionService.deleteAllMonobankTransactions)
-        .mockResolvedValue({ deleted: 3, source: "MONOBANK" as const });
+      vi.mocked(
+        transactionService.deleteAllMonobankTransactions,
+      ).mockResolvedValue({ deleted: 3, source: "MONOBANK" as const });
 
       const res = await request(app)
         .delete("/api/transactions/monobank")
@@ -384,7 +378,7 @@ describe("Monobank Integration", () => {
 
       expect(res.status).toBe(200);
       expect(
-        jest.mocked(transactionService.deleteAllMonobankTransactions),
+        vi.mocked(transactionService.deleteAllMonobankTransactions),
       ).toHaveBeenCalledWith(userId);
     });
 
@@ -393,12 +387,12 @@ describe("Monobank Integration", () => {
       mockAuth(userId);
       const token = makeToken(userId);
 
-      jest
-        .mocked(transactionService.deleteAllMonobankTransactions)
-        .mockResolvedValue({ deleted: 2, source: "MONOBANK" as const });
-      jest
-        .mocked(transactionService.importMonobankTransactions)
-        .mockResolvedValue({ imported: 2, skipped: 0, total: 2 });
+      vi.mocked(
+        transactionService.deleteAllMonobankTransactions,
+      ).mockResolvedValue({ deleted: 2, source: "MONOBANK" as const });
+      vi.mocked(
+        transactionService.importMonobankTransactions,
+      ).mockResolvedValue({ imported: 2, skipped: 0, total: 2 });
 
       await request(app)
         .delete("/api/transactions/monobank")

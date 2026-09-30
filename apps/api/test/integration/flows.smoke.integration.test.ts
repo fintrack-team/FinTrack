@@ -1,4 +1,4 @@
-import { jest } from "@jest/globals";
+import { vi } from "vitest";
 import request from "supertest";
 import { Prisma } from "@prisma/client";
 
@@ -8,64 +8,55 @@ import type * as TransactionServiceTypes from "../../src/modules/transaction/ser
 import type * as DonationServiceTypes from "../../src/modules/donation/service.js";
 import type * as AdminServiceTypes from "../../src/modules/admin/service.js";
 
-// Mock objects are built once at module scope: jest may call a mock factory
-// more than once (it does on Linux), and a fresh object per call would leave
-// the test configuring a different jest.fn than the one the app calls.
 const authServiceModuleMock = {
-  findSessionById: jest.fn(),
-  findSessionByTokenHash: jest.fn(),
-  revokeSessionFamily: jest.fn(),
-  revokeSession: jest.fn(),
-  rotateSession: jest.fn(),
-  createSession: jest.fn(),
-  logoutByTokenHash: jest.fn(),
-  revokeAllUserSessions: jest.fn(),
-  loginWithGoogle: jest.fn(),
+  findSessionById: vi.fn(),
+  findSessionByTokenHash: vi.fn(),
+  revokeSessionFamily: vi.fn(),
+  revokeSession: vi.fn(),
+  rotateSession: vi.fn(),
+  createSession: vi.fn(),
+  logoutByTokenHash: vi.fn(),
+  revokeAllUserSessions: vi.fn(),
+  loginWithGoogle: vi.fn(),
 };
-jest.unstable_mockModule(
-  "../../src/modules/auth/service.js",
-  () => authServiceModuleMock,
-);
+vi.mock("../../src/modules/auth/service.js", () => authServiceModuleMock);
 
 const transactionServiceModuleMock = {
-  getAllTransactions: jest.fn(),
-  getTransactionsPerPage: jest.fn(),
-  getTransaction: jest.fn(),
-  createTransaction: jest.fn(),
-  updateTransaction: jest.fn(),
-  deleteTransaction: jest.fn(),
-  importMonobankTransactions: jest.fn(),
-  deleteAllMonobankTransactions: jest.fn(),
+  getAllTransactions: vi.fn(),
+  getTransactionsPerPage: vi.fn(),
+  getTransaction: vi.fn(),
+  createTransaction: vi.fn(),
+  updateTransaction: vi.fn(),
+  deleteTransaction: vi.fn(),
+  importMonobankTransactions: vi.fn(),
+  deleteAllMonobankTransactions: vi.fn(),
 };
-jest.unstable_mockModule(
+vi.mock(
   "../../src/modules/transaction/service.js",
   () => transactionServiceModuleMock,
 );
 
 const donationServiceModuleMock = {
-  createDonationCheckoutSession: jest.fn(),
-  processStripeWebhook: jest.fn(),
-  getDonationLeaderboard: jest.fn(),
+  createDonationCheckoutSession: vi.fn(),
+  processStripeWebhook: vi.fn(),
+  getDonationLeaderboard: vi.fn(),
 };
-jest.unstable_mockModule(
+vi.mock(
   "../../src/modules/donation/service.js",
   () => donationServiceModuleMock,
 );
 
 const adminServiceModuleMock = {
-  getAdminStats: jest.fn(),
-  reportErrorLog: jest.fn(),
-  revokeUserSessions: jest.fn(),
-  revokeAllSessions: jest.fn(),
-  updateUserRole: jest.fn(),
-  listUsers: jest.fn(),
-  listErrorLogs: jest.fn(),
-  resolveErrorLog: jest.fn(),
+  getAdminStats: vi.fn(),
+  reportErrorLog: vi.fn(),
+  revokeUserSessions: vi.fn(),
+  revokeAllSessions: vi.fn(),
+  updateUserRole: vi.fn(),
+  listUsers: vi.fn(),
+  listErrorLogs: vi.fn(),
+  resolveErrorLog: vi.fn(),
 };
-jest.unstable_mockModule(
-  "../../src/modules/admin/service.js",
-  () => adminServiceModuleMock,
-);
+vi.mock("../../src/modules/admin/service.js", () => adminServiceModuleMock);
 
 let app: typeof AppType;
 let authService: typeof AuthServiceTypes;
@@ -114,7 +105,7 @@ beforeAll(async () => {
 
 describe("User Flow Smoke Tests", () => {
   beforeEach(() => {
-    jest.resetAllMocks();
+    vi.resetAllMocks();
   });
 
   describe("User flow: login → create transaction → view summary", () => {
@@ -128,7 +119,7 @@ describe("User Flow Smoke Tests", () => {
         sessionId: SESSION_ID,
       });
 
-      jest.mocked(authService.findSessionById).mockResolvedValue({
+      vi.mocked(authService.findSessionById).mockResolvedValue({
         sessionId: SESSION_ID,
         userId: USER_ID,
         revokedAt: null,
@@ -136,9 +127,7 @@ describe("User Flow Smoke Tests", () => {
       });
 
       // Step 1: Create transaction
-      jest
-        .mocked(transactionService.createTransaction)
-        .mockResolvedValue(txStub);
+      vi.mocked(transactionService.createTransaction).mockResolvedValue(txStub);
 
       const createRes = await request(app)
         .post("/api/transactions")
@@ -155,9 +144,9 @@ describe("User Flow Smoke Tests", () => {
       expect(createRes.body.id).toBe(TX_ID);
 
       // Step 2: View summary reflects the new transaction
-      jest
-        .mocked(transactionService.getAllTransactions)
-        .mockResolvedValue({ data: [txStub] });
+      vi.mocked(transactionService.getAllTransactions).mockResolvedValue({
+        data: [txStub],
+      });
 
       const summaryRes = await request(app)
         .get("/api/summary")
@@ -170,19 +159,17 @@ describe("User Flow Smoke Tests", () => {
 
   describe("Admin flow: login → manage users → view stats", () => {
     it("admin can view stats and user list", async () => {
-      jest
-        .mocked(authService.findSessionById)
-        .mockImplementation((sessionId) => {
-          if (sessionId === ADMIN_SESSION_ID) {
-            return Promise.resolve({
-              sessionId: ADMIN_SESSION_ID,
-              userId: ADMIN_ID,
-              revokedAt: null,
-              expiresAt: new Date(Date.now() + 60_000),
-            });
-          }
-          return Promise.resolve(null);
-        });
+      vi.mocked(authService.findSessionById).mockImplementation((sessionId) => {
+        if (sessionId === ADMIN_SESSION_ID) {
+          return Promise.resolve({
+            sessionId: ADMIN_SESSION_ID,
+            userId: ADMIN_ID,
+            revokedAt: null,
+            expiresAt: new Date(Date.now() + 60_000),
+          });
+        }
+        return Promise.resolve(null);
+      });
 
       const adminToken = generateAccessToken({
         id: ADMIN_ID,
@@ -194,7 +181,7 @@ describe("User Flow Smoke Tests", () => {
       });
 
       // Step 1: Get stats
-      jest.mocked(adminService.getAdminStats).mockResolvedValue({
+      vi.mocked(adminService.getAdminStats).mockResolvedValue({
         users: { total: 5, admins: 1, verified: 4, newLast7Days: 1 },
         sessions: { active: 2 },
         errors: { open: 0 },
@@ -209,7 +196,7 @@ describe("User Flow Smoke Tests", () => {
       expect(statsRes.body.users.total).toBe(5);
 
       // Step 2: Get user list
-      jest.mocked(adminService.listUsers).mockResolvedValue([
+      vi.mocked(adminService.listUsers).mockResolvedValue([
         {
           id: USER_ID,
           name: "Test User",
@@ -240,9 +227,10 @@ describe("User Flow Smoke Tests", () => {
       );
 
       // Step 1: Process webhook
-      jest
-        .mocked(donationService.processStripeWebhook)
-        .mockResolvedValue({ received: true, duplicate: false });
+      vi.mocked(donationService.processStripeWebhook).mockResolvedValue({
+        received: true,
+        duplicate: false,
+      });
 
       const webhookRes = await request(app)
         .post("/api/donations/webhook")
@@ -254,7 +242,7 @@ describe("User Flow Smoke Tests", () => {
       expect(webhookRes.body.received).toBe(true);
 
       // Step 2: Leaderboard updated
-      jest.mocked(donationService.getDonationLeaderboard).mockResolvedValue([
+      vi.mocked(donationService.getDonationLeaderboard).mockResolvedValue([
         {
           userId: USER_ID,
           name: "Donor",
@@ -279,15 +267,15 @@ describe("User Flow Smoke Tests", () => {
       const userId = "11111111-1111-4111-8111-111111111111";
       const sessionId = "22222222-2222-4222-8222-222222222222";
 
-      jest.mocked(authService.findSessionById).mockResolvedValue({
+      vi.mocked(authService.findSessionById).mockResolvedValue({
         sessionId,
         userId,
         revokedAt: null,
         expiresAt: new Date(Date.now() + 60_000),
       });
 
-      global.fetch = jest.fn() as typeof fetch;
-      jest.mocked(global.fetch).mockResolvedValue({
+      global.fetch = vi.fn() as typeof fetch;
+      vi.mocked(global.fetch).mockResolvedValue({
         ok: true,
         status: 200,
         json: () =>
@@ -325,9 +313,9 @@ describe("User Flow Smoke Tests", () => {
       expect(accountsRes.status).toBe(200);
 
       // Step 2: Import
-      jest
-        .mocked(transactionService.importMonobankTransactions)
-        .mockResolvedValue({ imported: 3, skipped: 0, total: 3 });
+      vi.mocked(
+        transactionService.importMonobankTransactions,
+      ).mockResolvedValue({ imported: 3, skipped: 0, total: 3 });
 
       const importRes = await request(app)
         .post("/api/transactions/monobank/import")
@@ -351,7 +339,7 @@ describe("User Flow Smoke Tests", () => {
       expect(importRes.status).toBe(200);
 
       // Step 3: Summary reflects imported transactions
-      jest.mocked(transactionService.getAllTransactions).mockResolvedValue({
+      vi.mocked(transactionService.getAllTransactions).mockResolvedValue({
         data: [
           {
             id: "tx_mono_1",

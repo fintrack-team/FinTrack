@@ -1,15 +1,15 @@
-import { jest } from "@jest/globals";
+import { vi } from "vitest";
 import type { Request, Response, NextFunction } from "express";
 
-const mockFindUnique = jest.fn();
+const mockFindUnique = vi.fn();
 
-jest.unstable_mockModule("../../../src/prisma/client.js", () => ({
+vi.mock("../../../src/prisma/client.js", () => ({
   prisma: {
     user: { findUnique: mockFindUnique },
   },
 }));
 
-jest.unstable_mockModule("../../../src/config/env.js", () => ({
+vi.mock("../../../src/config/env.js", () => ({
   ENV: { NODE_ENV: "production" },
 }));
 
@@ -37,7 +37,7 @@ beforeAll(async () => {
 });
 
 beforeEach(() => {
-  jest.clearAllMocks();
+  vi.clearAllMocks();
 });
 
 function makeReq(user?: Partial<UserPayload>): Request {
@@ -48,7 +48,7 @@ const res = {} as Response;
 
 describe("requireRole", () => {
   it("returns 401 when req.user is missing", async () => {
-    const next = jest.fn() as NextFunction;
+    const next = vi.fn() as NextFunction;
     await requireRole(["ADMIN"])(makeReq(undefined), res, next);
     expect(next).toHaveBeenCalledWith(
       expect.objectContaining({ statusCode: 401 }),
@@ -57,7 +57,7 @@ describe("requireRole", () => {
 
   it("returns 403 when DB role is USER on ADMIN-only route", async () => {
     mockFindUnique.mockResolvedValue({ role: "USER" });
-    const next = jest.fn() as NextFunction;
+    const next = vi.fn() as NextFunction;
     await requireRole(["ADMIN"])(
       makeReq({ id: "u1", role: "USER" }),
       res,
@@ -70,7 +70,7 @@ describe("requireRole", () => {
 
   it("calls next() when DB confirms ADMIN role", async () => {
     mockFindUnique.mockResolvedValue({ role: "ADMIN" });
-    const next = jest.fn() as NextFunction;
+    const next = vi.fn() as NextFunction;
     await requireRole(["ADMIN"])(
       makeReq({ id: "u1", role: "ADMIN" }),
       res,
@@ -81,7 +81,7 @@ describe("requireRole", () => {
 
   it("allows USER on USER+ADMIN route", async () => {
     mockFindUnique.mockResolvedValue({ role: "USER" });
-    const next = jest.fn() as NextFunction;
+    const next = vi.fn() as NextFunction;
     await requireRole(["USER", "ADMIN"])(
       makeReq({ id: "u1", role: "USER" }),
       res,
@@ -92,7 +92,7 @@ describe("requireRole", () => {
 
   it("falls back to token role when DB throws and token role is allowed", async () => {
     mockFindUnique.mockRejectedValue(new Error("DB unavailable"));
-    const next = jest.fn() as NextFunction;
+    const next = vi.fn() as NextFunction;
     await requireRole(["ADMIN"])(
       makeReq({ id: "u1", role: "ADMIN" }),
       res,
@@ -103,7 +103,7 @@ describe("requireRole", () => {
 
   it("enforces token role fallback when DB throws and role is insufficient", async () => {
     mockFindUnique.mockRejectedValue(new Error("DB unavailable"));
-    const next = jest.fn() as NextFunction;
+    const next = vi.fn() as NextFunction;
     await requireRole(["ADMIN"])(
       makeReq({ id: "u1", role: "USER" }),
       res,
@@ -117,7 +117,7 @@ describe("requireRole", () => {
 
 describe("requireVerifiedUser (production mode)", () => {
   it("returns 401 when req.user is missing", () => {
-    const next = jest.fn() as NextFunction;
+    const next = vi.fn() as NextFunction;
     requireVerifiedUser({ user: undefined } as unknown as Request, res, next);
     expect(next).toHaveBeenCalledWith(
       expect.objectContaining({ statusCode: 401 }),
@@ -125,7 +125,7 @@ describe("requireVerifiedUser (production mode)", () => {
   });
 
   it("returns 403 for unverified user", () => {
-    const next = jest.fn() as NextFunction;
+    const next = vi.fn() as NextFunction;
     requireVerifiedUser(makeReq({ isVerified: false }), res, next);
     expect(next).toHaveBeenCalledWith(
       expect.objectContaining({ statusCode: 403 }),
@@ -133,7 +133,7 @@ describe("requireVerifiedUser (production mode)", () => {
   });
 
   it("calls next() for verified user", () => {
-    const next = jest.fn() as NextFunction;
+    const next = vi.fn() as NextFunction;
     requireVerifiedUser(makeReq({ isVerified: true }), res, next);
     expect(next).toHaveBeenCalledWith();
   });

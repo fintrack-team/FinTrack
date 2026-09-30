@@ -1,32 +1,26 @@
-import { jest } from "@jest/globals";
+import { vi } from "vitest";
 import request from "supertest";
 
 import type { app as AppType } from "../../src/app.js";
 import type * as AuthServiceTypes from "../../src/modules/auth/service.js";
 
-// Mock objects are built once at module scope: jest may call a mock factory
-// more than once (it does on Linux), and a fresh object per call would leave
-// the test configuring a different jest.fn than the one the app calls.
 const authServiceModuleMock = {
-  findSessionById: jest.fn(),
-  findSessionByTokenHash: jest.fn(),
-  revokeSessionFamily: jest.fn(),
-  revokeSession: jest.fn(),
-  rotateSession: jest.fn(),
-  createSession: jest.fn(),
-  logoutByTokenHash: jest.fn(),
-  revokeAllUserSessions: jest.fn(),
-  markSessionUsed: jest.fn(),
-  loginWithGoogle: jest.fn(),
-  loginWithTelegram: jest.fn(),
-  findVerificationTokenByUserId: jest.fn(),
-  findAuthMethodByEmail: jest.fn(),
-  login: jest.fn(),
+  findSessionById: vi.fn(),
+  findSessionByTokenHash: vi.fn(),
+  revokeSessionFamily: vi.fn(),
+  revokeSession: vi.fn(),
+  rotateSession: vi.fn(),
+  createSession: vi.fn(),
+  logoutByTokenHash: vi.fn(),
+  revokeAllUserSessions: vi.fn(),
+  markSessionUsed: vi.fn(),
+  loginWithGoogle: vi.fn(),
+  loginWithTelegram: vi.fn(),
+  findVerificationTokenByUserId: vi.fn(),
+  findAuthMethodByEmail: vi.fn(),
+  login: vi.fn(),
 };
-jest.unstable_mockModule(
-  "../../src/modules/auth/service.js",
-  () => authServiceModuleMock,
-);
+vi.mock("../../src/modules/auth/service.js", () => authServiceModuleMock);
 
 let app: typeof AppType;
 let authService: typeof AuthServiceTypes;
@@ -52,7 +46,7 @@ beforeAll(async () => {
 
 describe("Auth Missing Integration", () => {
   beforeEach(() => {
-    jest.resetAllMocks();
+    vi.resetAllMocks();
   });
 
   describe("POST /api/auth/logout-all", () => {
@@ -62,17 +56,15 @@ describe("Auth Missing Integration", () => {
     });
 
     it("revokes all sessions for the user", async () => {
-      jest.mocked(authService.findSessionById).mockResolvedValue({
+      vi.mocked(authService.findSessionById).mockResolvedValue({
         sessionId: SESSION_ID,
         userId: USER_ID,
         revokedAt: null,
         expiresAt: new Date(Date.now() + 60_000),
       });
 
-      jest
-        .mocked(authService.revokeAllUserSessions)
-        .mockResolvedValue(undefined);
-      jest.mocked(authService.revokeSessionFamily).mockResolvedValue(undefined);
+      vi.mocked(authService.revokeAllUserSessions).mockResolvedValue(undefined);
+      vi.mocked(authService.revokeSessionFamily).mockResolvedValue(undefined);
 
       const accessToken = generateAccessToken({
         id: USER_ID,
@@ -91,16 +83,14 @@ describe("Auth Missing Integration", () => {
     });
 
     it("clears session cookies after logout-all", async () => {
-      jest.mocked(authService.findSessionById).mockResolvedValue({
+      vi.mocked(authService.findSessionById).mockResolvedValue({
         sessionId: SESSION_ID,
         userId: USER_ID,
         revokedAt: null,
         expiresAt: new Date(Date.now() + 60_000),
       });
-      jest
-        .mocked(authService.revokeAllUserSessions)
-        .mockResolvedValue(undefined);
-      jest.mocked(authService.revokeSessionFamily).mockResolvedValue(undefined);
+      vi.mocked(authService.revokeAllUserSessions).mockResolvedValue(undefined);
+      vi.mocked(authService.revokeSessionFamily).mockResolvedValue(undefined);
 
       const accessToken = generateAccessToken({
         id: USER_ID,
@@ -128,7 +118,7 @@ describe("Auth Missing Integration", () => {
 
   describe("POST /api/auth/token — refresh token reuse attack", () => {
     it("returns 401 for already-revoked refresh token", async () => {
-      jest.mocked(authService.findSessionByTokenHash).mockResolvedValue({
+      vi.mocked(authService.findSessionByTokenHash).mockResolvedValue({
         sessionId: SESSION_ID,
         tokenHash: "hashed_old_token",
         familyId: FAMILY_ID,
@@ -143,7 +133,7 @@ describe("Auth Missing Integration", () => {
         userId: USER_ID,
       });
 
-      jest.mocked(authService.revokeSessionFamily).mockResolvedValue(undefined);
+      vi.mocked(authService.revokeSessionFamily).mockResolvedValue(undefined);
 
       const res = await request(app)
         .post("/api/auth/token")
@@ -153,7 +143,7 @@ describe("Auth Missing Integration", () => {
     });
 
     it("returns 401 and does not rotate expired refresh token", async () => {
-      jest.mocked(authService.findSessionByTokenHash).mockResolvedValue({
+      vi.mocked(authService.findSessionByTokenHash).mockResolvedValue({
         sessionId: SESSION_ID,
         tokenHash: "expired_hash",
         familyId: FAMILY_ID,
@@ -173,11 +163,11 @@ describe("Auth Missing Integration", () => {
         .send({ token: "expired_refresh_token" });
 
       expect(res.status).toBe(401);
-      expect(jest.mocked(authService.rotateSession)).not.toHaveBeenCalled();
+      expect(vi.mocked(authService.rotateSession)).not.toHaveBeenCalled();
     });
 
     it("returns 401 when session not found", async () => {
-      jest.mocked(authService.findSessionByTokenHash).mockResolvedValue(null);
+      vi.mocked(authService.findSessionByTokenHash).mockResolvedValue(null);
 
       const res = await request(app)
         .post("/api/auth/token")
@@ -223,30 +213,34 @@ describe("Auth Missing Integration", () => {
   });
 });
 
-// Rate limit test uses jest.resetModules() to get fresh rate limiter state
+// Rate limit test uses vi.resetModules() to get fresh rate limiter state
 describe("Auth Rate Limiting", () => {
-  beforeEach(() => {
-    jest.resetModules();
+  beforeEach(async () => {
+    vi.resetModules();
+    // resetModules() reloads app code but not node_modules, so mongoose keeps
+    // the model the first app import registered; re-importing would throw.
+    const { default: mongoose } = await import("mongoose");
+    if (mongoose.models.AuditEvent) mongoose.deleteModel("AuditEvent");
   });
 
   it("returns 429 after exceeding login rate limit", async () => {
     const _authServiceModuleMock = {
-      findSessionById: jest.fn(),
-      findSessionByTokenHash: jest.fn(),
-      revokeSessionFamily: jest.fn(),
-      revokeSession: jest.fn(),
-      rotateSession: jest.fn(),
-      createSession: jest.fn(),
-      logoutByTokenHash: jest.fn(),
-      revokeAllUserSessions: jest.fn(),
-      markSessionUsed: jest.fn(),
-      loginWithGoogle: jest.fn(),
-      loginWithTelegram: jest.fn(),
-      findVerificationTokenByUserId: jest.fn(),
-      findAuthMethodByEmail: jest.fn(),
-      login: jest.fn(),
+      findSessionById: vi.fn(),
+      findSessionByTokenHash: vi.fn(),
+      revokeSessionFamily: vi.fn(),
+      revokeSession: vi.fn(),
+      rotateSession: vi.fn(),
+      createSession: vi.fn(),
+      logoutByTokenHash: vi.fn(),
+      revokeAllUserSessions: vi.fn(),
+      markSessionUsed: vi.fn(),
+      loginWithGoogle: vi.fn(),
+      loginWithTelegram: vi.fn(),
+      findVerificationTokenByUserId: vi.fn(),
+      findAuthMethodByEmail: vi.fn(),
+      login: vi.fn(),
     };
-    jest.unstable_mockModule(
+    vi.doMock(
       "../../src/modules/auth/service.js",
       () => _authServiceModuleMock,
     );
@@ -269,22 +263,22 @@ describe("Auth Rate Limiting", () => {
 
   it("returns 429 after exceeding refresh token rate limit", async () => {
     const __authServiceModuleMock = {
-      findSessionById: jest.fn(),
-      findSessionByTokenHash: jest.fn(async () => null),
-      revokeSessionFamily: jest.fn(),
-      revokeSession: jest.fn(),
-      rotateSession: jest.fn(),
-      createSession: jest.fn(),
-      logoutByTokenHash: jest.fn(),
-      revokeAllUserSessions: jest.fn(),
-      markSessionUsed: jest.fn(),
-      loginWithGoogle: jest.fn(),
-      loginWithTelegram: jest.fn(),
-      findVerificationTokenByUserId: jest.fn(),
-      findAuthMethodByEmail: jest.fn(),
-      login: jest.fn(),
+      findSessionById: vi.fn(),
+      findSessionByTokenHash: vi.fn(async () => null),
+      revokeSessionFamily: vi.fn(),
+      revokeSession: vi.fn(),
+      rotateSession: vi.fn(),
+      createSession: vi.fn(),
+      logoutByTokenHash: vi.fn(),
+      revokeAllUserSessions: vi.fn(),
+      markSessionUsed: vi.fn(),
+      loginWithGoogle: vi.fn(),
+      loginWithTelegram: vi.fn(),
+      findVerificationTokenByUserId: vi.fn(),
+      findAuthMethodByEmail: vi.fn(),
+      login: vi.fn(),
     };
-    jest.unstable_mockModule(
+    vi.doMock(
       "../../src/modules/auth/service.js",
       () => __authServiceModuleMock,
     );

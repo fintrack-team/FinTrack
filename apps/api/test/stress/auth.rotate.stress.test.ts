@@ -1,14 +1,14 @@
-import { jest } from "@jest/globals";
+import { vi } from "vitest";
 
 describe("Auth rotateSession stress", () => {
   beforeEach(() => {
-    jest.resetModules();
+    vi.resetModules();
   });
 
   it("allows only one successful rotation under concurrent reuse attempts", async () => {
     const revoked = new Set<string>();
 
-    jest.unstable_mockModule("../../src/prisma/client.js", () => ({
+    vi.doMock("../../src/prisma/client.js", () => ({
       prisma: {
         $transaction: async (
           callback: (tx: {

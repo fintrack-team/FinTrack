@@ -10,7 +10,7 @@
  *   D) Leaderboard is accessible to unverified users.
  */
 
-import { jest } from "@jest/globals";
+import { vi } from "vitest";
 import request from "supertest";
 
 import type { app as AppType } from "../../src/app.js";
@@ -20,55 +20,44 @@ import type { AppError as AppErrorType } from "../../src/middleware/errorHandler
 import type { generateAccessToken as GenerateAccessTokenType } from "../../src/modules/auth/controller.js";
 
 const mockVerifyIdToken =
-  jest.fn<
-    () => Promise<{ getPayload: () => Record<string, unknown> | null }>
-  >();
+  vi.fn<() => Promise<{ getPayload: () => Record<string, unknown> | null }>>();
 
-jest.unstable_mockModule("google-auth-library", () => ({
+vi.mock("google-auth-library", () => ({
   OAuth2Client: class {
     verifyIdToken = mockVerifyIdToken;
   },
 }));
 
-// Mock objects are built once at module scope: jest may call a mock factory
-// more than once (it does on Linux), and a fresh object per call would leave
-// the test configuring a different jest.fn than the one the app calls.
 const authServiceMock = {
-  login: jest.fn(),
-  loginWithGoogle: jest.fn(),
-  createSession: jest.fn(),
-  findSessionById: jest.fn(),
-  findSessionByTokenHash: jest.fn(),
-  revokeSessionFamily: jest.fn(),
-  revokeSession: jest.fn(),
-  createEmailVerificationToken: jest.fn(),
-  consumeEmailVerificationToken: jest.fn(),
-  findVerificationTokenByUserId: jest.fn(),
-  findAuthMethodByEmail: jest.fn(),
+  login: vi.fn(),
+  loginWithGoogle: vi.fn(),
+  createSession: vi.fn(),
+  findSessionById: vi.fn(),
+  findSessionByTokenHash: vi.fn(),
+  revokeSessionFamily: vi.fn(),
+  revokeSession: vi.fn(),
+  createEmailVerificationToken: vi.fn(),
+  consumeEmailVerificationToken: vi.fn(),
+  findVerificationTokenByUserId: vi.fn(),
+  findAuthMethodByEmail: vi.fn(),
 };
 const userServiceMock = {
-  getUser: jest.fn(),
-  createUser: jest.fn(),
-  findUserByEmail: jest.fn(),
-  deleteAuthMethod: jest.fn(),
+  getUser: vi.fn(),
+  createUser: vi.fn(),
+  findUserByEmail: vi.fn(),
+  deleteAuthMethod: vi.fn(),
 };
 const mailerMock = {
-  sendVerificationEmail: jest
+  sendVerificationEmail: vi
     .fn<() => Promise<void>>()
     .mockResolvedValue(undefined),
 };
 
-jest.unstable_mockModule(
-  "../../src/modules/auth/service.js",
-  () => authServiceMock,
-);
+vi.mock("../../src/modules/auth/service.js", () => authServiceMock);
 
-jest.unstable_mockModule(
-  "../../src/modules/user/service.js",
-  () => userServiceMock,
-);
+vi.mock("../../src/modules/user/service.js", () => userServiceMock);
 
-jest.unstable_mockModule("../../src/utils/mailer.js", () => mailerMock);
+vi.mock("../../src/utils/mailer.js", () => mailerMock);
 
 let app: typeof AppType;
 let authService: typeof AuthServiceTypes;
@@ -136,14 +125,14 @@ function makeSessionStub(userId = USER_ID) {
 // ── Scenario A: manual first, Google second ───────────────────────────────
 
 describe("Scenario A — manual registration then Google login with same email", () => {
-  beforeEach(() => jest.resetAllMocks());
+  beforeEach(() => vi.resetAllMocks());
 
   it("links Google to the existing email account and issues session cookies", async () => {
     const userStub = makeUserStub({ isVerified: true });
 
-    jest.mocked(authService.loginWithGoogle).mockResolvedValue(userStub);
-    jest.mocked(authService.createSession).mockResolvedValue(makeSessionStub());
-    jest.mocked(authService.findSessionById).mockResolvedValue({
+    vi.mocked(authService.loginWithGoogle).mockResolvedValue(userStub);
+    vi.mocked(authService.createSession).mockResolvedValue(makeSessionStub());
+    vi.mocked(authService.findSessionById).mockResolvedValue({
       sessionId: SESSION_ID,
       userId: USER_ID,
       revokedAt: null,
@@ -175,9 +164,9 @@ describe("Scenario A — manual registration then Google login with same email",
   });
 
   it("returns 409 when loginWithGoogle reports a conflict", async () => {
-    jest
-      .mocked(authService.loginWithGoogle)
-      .mockRejectedValue(new AppError("Item already exists", 409));
+    vi.mocked(authService.loginWithGoogle).mockRejectedValue(
+      new AppError("Item already exists", 409),
+    );
 
     mockVerifyIdToken.mockResolvedValueOnce({
       getPayload: () => ({
@@ -200,11 +189,11 @@ describe("Scenario A — manual registration then Google login with same email",
 // ── Scenario B: Google first, manual registration second ─────────────────
 
 describe("Scenario B — Google login first, then manual registration with same email", () => {
-  beforeEach(() => jest.resetAllMocks());
+  beforeEach(() => vi.resetAllMocks());
 
   it("returns 409 when userService.findUserByEmail detects an existing account", async () => {
     // Simulate a Google-first user: User.email is already set in the DB
-    jest.mocked(userService.findUserByEmail).mockResolvedValue({ id: USER_ID });
+    vi.mocked(userService.findUserByEmail).mockResolvedValue({ id: USER_ID });
 
     const response = await request(app)
       .post("/api/users")
@@ -225,13 +214,13 @@ describe("Scenario B — Google login first, then manual registration with same 
   });
 
   it("allows registration and sends verification email when no conflict exists", async () => {
-    jest.mocked(userService.findUserByEmail).mockResolvedValue(null);
+    vi.mocked(userService.findUserByEmail).mockResolvedValue(null);
 
     const createdUser = makeUserStub({ isVerified: false });
-    jest.mocked(userService.createUser).mockResolvedValue(createdUser);
-    jest
-      .mocked(authService.createEmailVerificationToken)
-      .mockResolvedValue("tok123");
+    vi.mocked(userService.createUser).mockResolvedValue(createdUser);
+    vi.mocked(authService.createEmailVerificationToken).mockResolvedValue(
+      "tok123",
+    );
 
     const response = await request(app)
       .post("/api/users")
@@ -252,7 +241,7 @@ describe("Scenario B — Google login first, then manual registration with same 
 // ── Scenario C: Google token validation ──────────────────────────────────
 
 describe("Scenario C — Google exchange token validation", () => {
-  beforeEach(() => jest.resetAllMocks());
+  beforeEach(() => vi.resetAllMocks());
 
   it("returns 401 when Google email_verified is false", async () => {
     mockVerifyIdToken.mockResolvedValueOnce({
@@ -286,7 +275,7 @@ describe("Scenario C — Google exchange token validation", () => {
 // ── Leaderboard: accessible to unverified users ───────────────────────────
 
 describe("Donation leaderboard — accessible without email verification", () => {
-  beforeEach(() => jest.resetAllMocks());
+  beforeEach(() => vi.resetAllMocks());
 
   it("returns 200 (not 403) for an authenticated but unverified user", async () => {
     const accessToken = generateAccessToken({
@@ -298,7 +287,7 @@ describe("Donation leaderboard — accessible without email verification", () =>
       sessionId: SESSION_ID,
     });
 
-    jest.mocked(authService.findSessionById).mockResolvedValue({
+    vi.mocked(authService.findSessionById).mockResolvedValue({
       sessionId: SESSION_ID,
       userId: USER_ID,
       revokedAt: null,

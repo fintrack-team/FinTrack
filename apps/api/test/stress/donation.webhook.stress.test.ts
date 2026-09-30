@@ -1,4 +1,4 @@
-import { jest } from "@jest/globals";
+import { vi } from "vitest";
 
 class MockKnownRequestError extends Error {
   code: string;
@@ -11,19 +11,19 @@ class MockKnownRequestError extends Error {
 
 describe("Stripe webhook idempotency stress", () => {
   beforeEach(() => {
-    jest.resetModules();
+    vi.resetModules();
   });
 
   it("handles duplicate webhook bursts without failing", async () => {
     const seen = new Set<string>();
 
-    jest.unstable_mockModule("@prisma/client", () => ({
+    vi.doMock("@prisma/client", () => ({
       Prisma: {
         PrismaClientKnownRequestError: MockKnownRequestError,
       },
     }));
 
-    jest.unstable_mockModule("../../src/config/env.js", () => ({
+    vi.doMock("../../src/config/env.js", () => ({
       ENV: {
         STRIPE_SECRET_KEY: "sk_test_123",
         STRIPE_WEBHOOK_SECRET: "whsec_123",
@@ -36,11 +36,11 @@ describe("Stripe webhook idempotency stress", () => {
       },
     }));
 
-    jest.unstable_mockModule("../../src/utils/authSecurity.js", () => ({
-      logSecurityEvent: jest.fn(),
+    vi.doMock("../../src/utils/authSecurity.js", () => ({
+      logSecurityEvent: vi.fn(),
     }));
 
-    jest.unstable_mockModule("../../src/prisma/client.js", () => ({
+    vi.doMock("../../src/prisma/client.js", () => ({
       prisma: {
         stripeWebhookEvent: {
           create: async (args: { data: { stripeEventId: string } }) => {
@@ -60,7 +60,7 @@ describe("Stripe webhook idempotency stress", () => {
       },
     }));
 
-    jest.unstable_mockModule("stripe", () => ({
+    vi.doMock("stripe", () => ({
       default: class Stripe {
         webhooks = {
           constructEvent: () => ({

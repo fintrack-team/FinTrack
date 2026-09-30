@@ -22,7 +22,7 @@
     },
     "test": {
       "dependsOn": ["^build"],
-      "inputs": ["src/**/*.ts", "test/**/*.ts", "jest.config.cjs"]
+      "inputs": ["src/**/*.ts", "test/**/*.ts", "vitest.config.ts"]
     }
   }
 }

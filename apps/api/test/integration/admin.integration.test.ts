@@ -1,4 +1,4 @@
-import { jest } from "@jest/globals";
+import { vi } from "vitest";
 import request from "supertest";
 
 import type { app as AppType } from "../../src/app.js";
@@ -6,31 +6,22 @@ import type * as AdminServiceTypes from "../../src/modules/admin/service.js";
 import type * as AuthServiceTypes from "../../src/modules/auth/service.js";
 import type { generateAccessToken as GenerateAccessTokenType } from "../../src/modules/auth/controller.js";
 
-// Mock objects are built once at module scope: jest may call a mock factory
-// more than once (it does on Linux), and a fresh object per call would leave
-// the test configuring a different jest.fn than the one the app calls.
 const authServiceModuleMock = {
-  findSessionById: jest.fn(),
-  findSessionByTokenHash: jest.fn(),
-  revokeSessionFamily: jest.fn(),
-  loginWithGoogle: jest.fn(),
-  createSession: jest.fn(),
+  findSessionById: vi.fn(),
+  findSessionByTokenHash: vi.fn(),
+  revokeSessionFamily: vi.fn(),
+  loginWithGoogle: vi.fn(),
+  createSession: vi.fn(),
 };
-jest.unstable_mockModule(
-  "../../src/modules/auth/service.js",
-  () => authServiceModuleMock,
-);
+vi.mock("../../src/modules/auth/service.js", () => authServiceModuleMock);
 
 const adminServiceModuleMock = {
-  getAdminStats: jest.fn(),
-  reportErrorLog: jest.fn(),
-  revokeUserSessions: jest.fn(),
-  revokeAllSessions: jest.fn(),
+  getAdminStats: vi.fn(),
+  reportErrorLog: vi.fn(),
+  revokeUserSessions: vi.fn(),
+  revokeAllSessions: vi.fn(),
 };
-jest.unstable_mockModule(
-  "../../src/modules/admin/service.js",
-  () => adminServiceModuleMock,
-);
+vi.mock("../../src/modules/admin/service.js", () => adminServiceModuleMock);
 
 let app: typeof AppType;
 let authService: typeof AuthServiceTypes;
@@ -47,8 +38,8 @@ beforeAll(async () => {
 
 describe("Admin Integration", () => {
   beforeEach(() => {
-    jest.resetAllMocks();
-    jest.mocked(authService.findSessionById).mockResolvedValue({
+    vi.resetAllMocks();
+    vi.mocked(authService.findSessionById).mockResolvedValue({
       sessionId: "e5af2f58-5f09-4c64-8e13-f5b9323248d0",
       userId: "1772f0ba-450d-4b81-bb7c-df6f0a7483c3",
       revokedAt: null,
@@ -73,7 +64,7 @@ describe("Admin Integration", () => {
       sessionId: "86f97690-d689-4fd8-9bf9-5fbf9f4cce59",
     });
 
-    jest.mocked(authService.findSessionById).mockResolvedValue({
+    vi.mocked(authService.findSessionById).mockResolvedValue({
       sessionId: "86f97690-d689-4fd8-9bf9-5fbf9f4cce59",
       userId: "6e562f73-df6c-4ef0-b830-cdc5e4cd43ef",
       revokedAt: null,
@@ -97,7 +88,7 @@ describe("Admin Integration", () => {
       sessionId: "e5af2f58-5f09-4c64-8e13-f5b9323248d0",
     });
 
-    jest.mocked(adminService.getAdminStats).mockResolvedValue({
+    vi.mocked(adminService.getAdminStats).mockResolvedValue({
       users: { total: 10, admins: 1, verified: 8, newLast7Days: 3 },
       sessions: { active: 5 },
       errors: { open: 2 },
@@ -122,14 +113,14 @@ describe("Admin Integration", () => {
       sessionId: "f2945050-c0f7-4a4b-a117-775370a2fed0",
     });
 
-    jest.mocked(authService.findSessionById).mockResolvedValue({
+    vi.mocked(authService.findSessionById).mockResolvedValue({
       sessionId: "f2945050-c0f7-4a4b-a117-775370a2fed0",
       userId,
       revokedAt: null,
       expiresAt: new Date(Date.now() + 60_000),
     });
 
-    jest.mocked(adminService.reportErrorLog).mockResolvedValue({
+    vi.mocked(adminService.reportErrorLog).mockResolvedValue({
       id: "87eecaf5-00d5-46b4-9f55-51f0402bc201",
       title: "Dashboard crash",
       status: "OPEN",
@@ -160,16 +151,16 @@ describe("Admin Integration", () => {
       sessionId: "2f06ee39-6fb3-483c-9a7c-20ef60eafbce",
     });
 
-    jest.mocked(authService.findSessionById).mockResolvedValue({
+    vi.mocked(authService.findSessionById).mockResolvedValue({
       sessionId: "2f06ee39-6fb3-483c-9a7c-20ef60eafbce",
       userId: adminId,
       revokedAt: null,
       expiresAt: new Date(Date.now() + 60_000),
     });
 
-    jest
-      .mocked(adminService.revokeUserSessions)
-      .mockResolvedValue({ revokedCount: 3 });
+    vi.mocked(adminService.revokeUserSessions).mockResolvedValue({
+      revokedCount: 3,
+    });
 
     const response = await request(app)
       .post(`/api/admin/sessions/revoke-user/${targetUserId}`)
@@ -189,16 +180,16 @@ describe("Admin Integration", () => {
       sessionId: "6fba9450-ee14-4e5f-89f0-112d5a9883d0",
     });
 
-    jest.mocked(authService.findSessionById).mockResolvedValue({
+    vi.mocked(authService.findSessionById).mockResolvedValue({
       sessionId: "6fba9450-ee14-4e5f-89f0-112d5a9883d0",
       userId: adminId,
       revokedAt: null,
       expiresAt: new Date(Date.now() + 60_000),
     });
 
-    jest
-      .mocked(adminService.revokeAllSessions)
-      .mockResolvedValue({ revokedCount: 7 });
+    vi.mocked(adminService.revokeAllSessions).mockResolvedValue({
+      revokedCount: 7,
+    });
 
     const response = await request(app)
       .post("/api/admin/sessions/revoke-all")

@@ -3,7 +3,7 @@
     "module": "nodenext",
     "moduleResolution": "nodenext",
     "target": "esnext",
-    "types": ["node", "jest"],
+    "types": ["node", "vitest/globals"],
     "lib": ["esnext"],
     "strict": true,
     "esModuleInterop": true,
@@ -11,5 +11,5 @@
     "noEmit": true,
     "rootDir": ".."
   },
-  "include": ["./**/*.ts", "../src/types/express.d.ts", "setup.cjs"]
+  "include": ["./**/*.ts", "../src/types/express.d.ts"]
 }

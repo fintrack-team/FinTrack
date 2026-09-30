@@ -1,10 +1,10 @@
-import { jest } from "@jest/globals";
+import { vi } from "vitest";
 
-const mockCount = jest.fn();
-const mockDeleteMany = jest.fn();
-const mockTransaction = jest.fn();
+const mockCount = vi.fn();
+const mockDeleteMany = vi.fn();
+const mockTransaction = vi.fn();
 
-jest.unstable_mockModule("../../../src/prisma/client.js", () => ({
+vi.mock("../../../src/prisma/client.js", () => ({
   prisma: { $transaction: mockTransaction },
 }));
 
@@ -15,7 +15,7 @@ beforeAll(async () => {
 });
 
 beforeEach(() => {
-  jest.clearAllMocks();
+  vi.clearAllMocks();
   mockTransaction.mockImplementation(
     async (fn: (tx: unknown) => Promise<unknown>) =>
       fn({ authMethod: { count: mockCount, deleteMany: mockDeleteMany } }),

@@ -10,7 +10,7 @@
  *   6. POST /api/auth/resend-verification — silently skips already-verified user
  */
 
-import { jest } from "@jest/globals";
+import { vi } from "vitest";
 import request from "supertest";
 
 import type { app as AppType } from "../../src/app.js";
@@ -18,45 +18,36 @@ import type * as AuthServiceTypes from "../../src/modules/auth/service.js";
 import type * as UserServiceTypes from "../../src/modules/user/service.js";
 import type { AppError as AppErrorType } from "../../src/middleware/errorHandler.js";
 
-// Mock objects are built once at module scope: jest may call a mock factory
-// more than once (it does on Linux), and a fresh object per call would leave
-// the test configuring a different jest.fn than the one the app calls.
 const authServiceMock = {
-  login: jest.fn(),
-  loginWithGoogle: jest.fn(),
-  createSession: jest.fn(),
-  findSessionById: jest.fn(),
-  findSessionByTokenHash: jest.fn(),
-  revokeSessionFamily: jest.fn(),
-  revokeSession: jest.fn(),
-  createEmailVerificationToken: jest.fn(),
-  consumeEmailVerificationToken: jest.fn(),
-  findVerificationTokenByUserId: jest.fn(),
-  findAuthMethodByEmail: jest.fn(),
+  login: vi.fn(),
+  loginWithGoogle: vi.fn(),
+  createSession: vi.fn(),
+  findSessionById: vi.fn(),
+  findSessionByTokenHash: vi.fn(),
+  revokeSessionFamily: vi.fn(),
+  revokeSession: vi.fn(),
+  createEmailVerificationToken: vi.fn(),
+  consumeEmailVerificationToken: vi.fn(),
+  findVerificationTokenByUserId: vi.fn(),
+  findAuthMethodByEmail: vi.fn(),
 };
 const userServiceMock = {
-  getUser: jest.fn(),
-  createUser: jest.fn(),
-  findUserByEmail: jest.fn(),
-  deleteAuthMethod: jest.fn(),
+  getUser: vi.fn(),
+  createUser: vi.fn(),
+  findUserByEmail: vi.fn(),
+  deleteAuthMethod: vi.fn(),
 };
 const mailerModuleMock = {
-  sendVerificationEmail: jest
+  sendVerificationEmail: vi
     .fn<() => Promise<void>>()
     .mockResolvedValue(undefined),
 };
 
-jest.unstable_mockModule(
-  "../../src/modules/auth/service.js",
-  () => authServiceMock,
-);
+vi.mock("../../src/modules/auth/service.js", () => authServiceMock);
 
-jest.unstable_mockModule(
-  "../../src/modules/user/service.js",
-  () => userServiceMock,
-);
+vi.mock("../../src/modules/user/service.js", () => userServiceMock);
 
-jest.unstable_mockModule("../../src/utils/mailer.js", () => mailerModuleMock);
+vi.mock("../../src/utils/mailer.js", () => mailerModuleMock);
 
 let app: typeof AppType;
 let authService: typeof AuthServiceTypes;
@@ -121,16 +112,16 @@ function makeAuthMethodStub() {
 // ── 1. Valid token → verified + session + redirect ────────────────────────
 
 describe("GET /api/auth/verify-email", () => {
-  beforeEach(() => jest.resetAllMocks());
+  beforeEach(() => vi.resetAllMocks());
 
   it("consumes valid token, issues session cookies, and redirects", async () => {
     const verifiedUser = makeUserStub(true);
 
-    jest
-      .mocked(authService.consumeEmailVerificationToken)
-      .mockResolvedValue(USER_ID);
-    jest.mocked(userService.getUser).mockResolvedValue(verifiedUser);
-    jest.mocked(authService.createSession).mockResolvedValue({
+    vi.mocked(authService.consumeEmailVerificationToken).mockResolvedValue(
+      USER_ID,
+    );
+    vi.mocked(userService.getUser).mockResolvedValue(verifiedUser);
+    vi.mocked(authService.createSession).mockResolvedValue({
       sessionId: SESSION_ID,
       tokenHash: "hash",
       familyId: "fam-1",
@@ -169,11 +160,9 @@ describe("GET /api/auth/verify-email", () => {
   });
 
   it("returns 400 when token is invalid", async () => {
-    jest
-      .mocked(authService.consumeEmailVerificationToken)
-      .mockRejectedValue(
-        new AppError("Invalid or expired verification token", 400),
-      );
+    vi.mocked(authService.consumeEmailVerificationToken).mockRejectedValue(
+      new AppError("Invalid or expired verification token", 400),
+    );
 
     const response = await request(app)
       .get("/api/auth/verify-email")
@@ -184,9 +173,9 @@ describe("GET /api/auth/verify-email", () => {
   });
 
   it("returns 400 when token is expired", async () => {
-    jest
-      .mocked(authService.consumeEmailVerificationToken)
-      .mockRejectedValue(new AppError("Verification token expired", 400));
+    vi.mocked(authService.consumeEmailVerificationToken).mockRejectedValue(
+      new AppError("Verification token expired", 400),
+    );
 
     const response = await request(app)
       .get("/api/auth/verify-email")
@@ -200,10 +189,10 @@ describe("GET /api/auth/verify-email", () => {
 // ── 2. Resend verification ────────────────────────────────────────────────
 
 describe("POST /api/auth/resend-verification", () => {
-  beforeEach(() => jest.resetAllMocks());
+  beforeEach(() => vi.resetAllMocks());
 
   it("always returns 200 even when email does not exist (no enumeration leak)", async () => {
-    jest.mocked(authService.findAuthMethodByEmail).mockResolvedValue(null);
+    vi.mocked(authService.findAuthMethodByEmail).mockResolvedValue(null);
 
     const response = await request(app)
       .post("/api/auth/resend-verification")
@@ -217,13 +206,13 @@ describe("POST /api/auth/resend-verification", () => {
   it("sends verification email for an unverified user", async () => {
     const unverifiedUser = makeUserStub(false);
 
-    jest
-      .mocked(authService.findAuthMethodByEmail)
-      .mockResolvedValue(makeAuthMethodStub());
-    jest.mocked(userService.getUser).mockResolvedValue(unverifiedUser);
-    jest
-      .mocked(authService.createEmailVerificationToken)
-      .mockResolvedValue("fresh_token_xyz");
+    vi.mocked(authService.findAuthMethodByEmail).mockResolvedValue(
+      makeAuthMethodStub(),
+    );
+    vi.mocked(userService.getUser).mockResolvedValue(unverifiedUser);
+    vi.mocked(authService.createEmailVerificationToken).mockResolvedValue(
+      "fresh_token_xyz",
+    );
     // resetAllMocks() wipes the factory's resolved value; the controller chains
     // .catch() on the result, so the mock must return a promise again.
     mailerMock.sendVerificationEmail.mockResolvedValue(undefined);
@@ -244,10 +233,10 @@ describe("POST /api/auth/resend-verification", () => {
   it("silently skips sending when user is already verified", async () => {
     const verifiedUser = makeUserStub(true);
 
-    jest
-      .mocked(authService.findAuthMethodByEmail)
-      .mockResolvedValue(makeAuthMethodStub());
-    jest.mocked(userService.getUser).mockResolvedValue(verifiedUser);
+    vi.mocked(authService.findAuthMethodByEmail).mockResolvedValue(
+      makeAuthMethodStub(),
+    );
+    vi.mocked(userService.getUser).mockResolvedValue(verifiedUser);
 
     const response = await request(app)
       .post("/api/auth/resend-verification")
@@ -271,9 +260,9 @@ describe("POST /api/auth/resend-verification", () => {
 
 describe("authService.createEmailVerificationToken (unit)", () => {
   it("is callable and returns a string token (mock)", async () => {
-    jest
-      .mocked(authService.createEmailVerificationToken)
-      .mockResolvedValue("mock_token_48bytes");
+    vi.mocked(authService.createEmailVerificationToken).mockResolvedValue(
+      "mock_token_48bytes",
+    );
 
     const token = await authService.createEmailVerificationToken(USER_ID);
     expect(typeof token).toBe("string");
@@ -285,20 +274,18 @@ describe("authService.createEmailVerificationToken (unit)", () => {
 
 describe("authService.consumeEmailVerificationToken (unit)", () => {
   it("returns userId on success (mock)", async () => {
-    jest
-      .mocked(authService.consumeEmailVerificationToken)
-      .mockResolvedValue(USER_ID);
+    vi.mocked(authService.consumeEmailVerificationToken).mockResolvedValue(
+      USER_ID,
+    );
 
     const result = await authService.consumeEmailVerificationToken("any_token");
     expect(result).toBe(USER_ID);
   });
 
   it("throws AppError on bad token (mock)", async () => {
-    jest
-      .mocked(authService.consumeEmailVerificationToken)
-      .mockRejectedValue(
-        new AppError("Invalid or expired verification token", 400),
-      );
+    vi.mocked(authService.consumeEmailVerificationToken).mockRejectedValue(
+      new AppError("Invalid or expired verification token", 400),
+    );
 
     await expect(
       authService.consumeEmailVerificationToken("bad"),
