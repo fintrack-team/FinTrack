@@ -402,7 +402,7 @@ bash dx run db:api:test:reset:dx
 ### Tips
 
 - Tests are self-contained — each test creates and tears down its own data.
-- Integration tests run in band (`--runInBand`) to avoid transaction conflicts.
+- API test files run one at a time (`fileParallelism: false` in `apps/api/vitest.config.ts`) because integration suites share one database.
 - The pre-push hook runs type-check, web tests, and light API tests automatically — only stress and e2e need manual triggering.
 - CI runs the full suite (`pnpm run test`) against a live PostgreSQL service.
 
