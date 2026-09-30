@@ -21,17 +21,29 @@ jest.unstable_mockModule("google-auth-library", () => ({
   },
 }));
 
-jest.unstable_mockModule("../../src/modules/auth/service.js", () => ({
+// Mock objects are built once at module scope: jest may call a mock factory
+// more than once (it does on Linux), and a fresh object per call would leave
+// the test configuring a different jest.fn than the one the app calls.
+const authServiceMock = {
   findSessionById: jest.fn(),
   findSessionByTokenHash: jest.fn(),
   revokeSessionFamily: jest.fn(),
   loginWithGoogle: jest.fn(),
   createSession: jest.fn(),
-}));
-
-jest.unstable_mockModule("../../src/modules/user/service.js", () => ({
+};
+const userServiceMock = {
   getUser: jest.fn(),
-}));
+};
+
+jest.unstable_mockModule(
+  "../../src/modules/auth/service.js",
+  () => authServiceMock,
+);
+
+jest.unstable_mockModule(
+  "../../src/modules/user/service.js",
+  () => userServiceMock,
+);
 
 let app: typeof AppType;
 let authService: typeof AuthServiceTypes;
@@ -151,8 +163,8 @@ describe("Auth Integration", () => {
       .send({ token: "old_refresh_token" });
 
     expect(response.status).toBe(401);
-    expect(response.body.error).toBe("Invalid refresh token");
-    expect(authService.findSessionByTokenHash).not.toHaveBeenCalled();
+    expect(response.body.error).toBe("Refresh token reuse detected");
+    expect(authService.revokeSessionFamily).toHaveBeenCalledWith("fam-123");
   });
 
   it("returns 400 for /api/auth/google/exchange with invalid payload", async () => {
@@ -183,7 +195,7 @@ describe("Auth Integration", () => {
       .post("/api/auth/google/exchange")
       .send({ idToken: "valid_google_id_token" });
 
-    expect(response.status).toBe(401);
+    expect(response.status).toBe(409);
   });
 
   it("creates backend session cookies on successful google exchange", async () => {
@@ -218,8 +230,13 @@ describe("Auth Integration", () => {
       .post("/api/auth/google/exchange")
       .send({ idToken: "valid_google_id_token" });
 
-    expect(response.status).toBe(401);
-    expect(response.body.error).toBe("Unable to complete Google login");
+    expect(response.status).toBe(200);
+    expect(response.headers["set-cookie"]).toEqual(
+      expect.arrayContaining([
+        expect.stringContaining("fintrack_access_token="),
+        expect.stringContaining("fintrack_refresh_token="),
+      ]),
+    );
   });
 
   it("rejects Telegram widget exchange with an invalid signature", async () => {

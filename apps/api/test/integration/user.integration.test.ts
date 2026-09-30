@@ -9,20 +9,31 @@ import type { generateAccessToken as GenerateAccessTokenType } from "../../src/m
 
 const mockTransaction = jest.fn();
 
-jest.unstable_mockModule("../../src/prisma/client.js", () => ({
+// Mock objects are built once at module scope: jest may call a mock factory
+// more than once (it does on Linux), and a fresh object per call would leave
+// the test configuring a different jest.fn than the one the app calls.
+const prismaClientModuleMock = {
   prisma: { $transaction: mockTransaction },
-}));
+};
+jest.unstable_mockModule(
+  "../../src/prisma/client.js",
+  () => prismaClientModuleMock,
+);
 
-jest.unstable_mockModule("../../src/modules/auth/service.js", () => ({
+const authServiceModuleMock = {
   findSessionById: jest.fn(),
   findSessionByTokenHash: jest.fn(),
   revokeSessionFamily: jest.fn(),
   loginWithGoogle: jest.fn(),
   createSession: jest.fn(),
   createEmailVerificationToken: jest.fn(),
-}));
+};
+jest.unstable_mockModule(
+  "../../src/modules/auth/service.js",
+  () => authServiceModuleMock,
+);
 
-jest.unstable_mockModule("../../src/modules/user/service.js", () => ({
+const userServiceModuleMock = {
   getUser: jest.fn(),
   deleteAuthMethod: jest.fn(),
   updateUser: jest.fn(),
@@ -30,7 +41,11 @@ jest.unstable_mockModule("../../src/modules/user/service.js", () => ({
   deleteUser: jest.fn(),
   createUser: jest.fn(),
   findUserByEmail: jest.fn(),
-}));
+};
+jest.unstable_mockModule(
+  "../../src/modules/user/service.js",
+  () => userServiceModuleMock,
+);
 
 let app: typeof AppType;
 let authService: typeof AuthServiceTypes;

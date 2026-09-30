@@ -4,7 +4,10 @@ import request from "supertest";
 import type { app as AppType } from "../../src/app.js";
 import type * as AuthServiceTypes from "../../src/modules/auth/service.js";
 
-jest.unstable_mockModule("../../src/modules/auth/service.js", () => ({
+// Mock objects are built once at module scope: jest may call a mock factory
+// more than once (it does on Linux), and a fresh object per call would leave
+// the test configuring a different jest.fn than the one the app calls.
+const authServiceModuleMock = {
   findSessionById: jest.fn(),
   findSessionByTokenHash: jest.fn(),
   revokeSessionFamily: jest.fn(),
@@ -14,7 +17,11 @@ jest.unstable_mockModule("../../src/modules/auth/service.js", () => ({
   logoutByTokenHash: jest.fn(),
   revokeAllUserSessions: jest.fn(),
   loginWithGoogle: jest.fn(),
-}));
+};
+jest.unstable_mockModule(
+  "../../src/modules/auth/service.js",
+  () => authServiceModuleMock,
+);
 
 let app: typeof AppType;
 let authService: typeof AuthServiceTypes;

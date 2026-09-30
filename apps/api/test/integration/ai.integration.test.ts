@@ -17,23 +17,34 @@ class AiServiceError extends Error {
   }
 }
 
-jest.unstable_mockModule("../../src/modules/auth/service.js", () => ({
+// Mock objects are built once at module scope: jest may call a mock factory
+// more than once (it does on Linux), and a fresh object per call would leave
+// the test configuring a different jest.fn than the one the app calls.
+const authServiceModuleMock = {
   findSessionById: jest.fn(),
   findSessionByTokenHash: jest.fn(),
   revokeSessionFamily: jest.fn(),
   loginWithGoogle: jest.fn(),
   createSession: jest.fn(),
   createEmailVerificationToken: jest.fn(),
-}));
+};
+jest.unstable_mockModule(
+  "../../src/modules/auth/service.js",
+  () => authServiceModuleMock,
+);
 
-jest.unstable_mockModule("../../src/modules/ai/service.js", () => ({
+const aiServiceModuleMock = {
   AiServiceError,
   getAIHistory: jest.fn(),
   getAiResponse: jest.fn(),
   ensureAiAccessOrThrow: jest.fn(),
   getAiAccessStatus: jest.fn(),
   incrementAiAnalysisUsage: jest.fn(),
-}));
+};
+jest.unstable_mockModule(
+  "../../src/modules/ai/service.js",
+  () => aiServiceModuleMock,
+);
 
 let app: typeof AppType;
 let authService: typeof AuthServiceTypes;
