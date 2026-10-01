@@ -7,7 +7,7 @@ import {
   setTokens,
 } from "./tokenStore.js";
 
-const { API_URL } = config;
+const { API_URL, BOT_API_SECRET } = config;
 
 const FETCH_TIMEOUT_MS = 20_000;
 
@@ -30,7 +30,10 @@ async function exchangeTokens(
 ): Promise<TokenPair> {
   const res = await timedFetch(`${API_URL}/auth/telegram/exchange`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      "X-Bot-Secret": BOT_API_SECRET,
+    },
     body: JSON.stringify({
       source: "bot",
       telegramId: String(telegramId),

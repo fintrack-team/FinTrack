@@ -9,6 +9,7 @@ import crypto from "node:crypto";
 import type { generateAccessToken as GenerateAccessTokenType } from "../../src/modules/auth/controller.js";
 
 process.env.TELEGRAM_BOT_TOKEN = "123456:test_bot_token";
+process.env.BOT_API_SECRET = "test_bot_api_secret";
 
 const mockVerifyIdToken =
   vi.fn<() => Promise<{ getPayload: () => Record<string, unknown> | null }>>();
@@ -24,6 +25,7 @@ const authServiceMock = {
   findSessionByTokenHash: vi.fn(),
   revokeSessionFamily: vi.fn(),
   loginWithGoogle: vi.fn(),
+  loginWithTelegram: vi.fn(),
   createSession: vi.fn(),
 };
 const userServiceMock = {
@@ -238,6 +240,68 @@ describe("Auth Integration", () => {
 
     expect(response.status).toBe(401);
     expect(response.body.error).toBe("Invalid Telegram login signature");
+  });
+
+  describe("Telegram bot exchange", () => {
+    const botBody = { source: "bot", telegramId: "123456789", name: "Victim" };
+
+    it("rejects bot exchange without X-Bot-Secret", async () => {
+      const response = await request(app)
+        .post("/api/auth/telegram/exchange")
+        .send(botBody);
+
+      expect(response.status).toBe(401);
+      expect(authService.loginWithTelegram).not.toHaveBeenCalled();
+    });
+
+    it("rejects bot exchange with a wrong X-Bot-Secret", async () => {
+      const response = await request(app)
+        .post("/api/auth/telegram/exchange")
+        .set("X-Bot-Secret", "wrong-secret")
+        .send(botBody);
+
+      expect(response.status).toBe(401);
+      expect(authService.loginWithTelegram).not.toHaveBeenCalled();
+    });
+
+    it("rejects exchange without source instead of defaulting to bot", async () => {
+      const response = await request(app)
+        .post("/api/auth/telegram/exchange")
+        .set("X-Bot-Secret", process.env.BOT_API_SECRET as string)
+        .send({ telegramId: "123456789", name: "Victim" });
+
+      expect(response.status).toBe(400);
+      expect(authService.loginWithTelegram).not.toHaveBeenCalled();
+    });
+
+    it("issues a token pair for the bot with a valid X-Bot-Secret", async () => {
+      vi.mocked(authService.loginWithTelegram).mockResolvedValue(userStub);
+      vi.mocked(authService.createSession).mockResolvedValue({
+        sessionId: "e6594ef2-7a59-4f7a-99f9-862758f624b2",
+        tokenHash: "hash",
+        familyId: "fam-1",
+        parentSessionId: null,
+        expiresAt: new Date(),
+        revokedAt: null,
+        userAgent: null,
+        ip: null,
+        lastUsedAt: new Date(),
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        userId: userStub.id,
+      });
+
+      const response = await request(app)
+        .post("/api/auth/telegram/exchange")
+        .set("X-Bot-Secret", process.env.BOT_API_SECRET as string)
+        .send(botBody);
+
+      expect(response.status).toBe(200);
+      expect(response.body).toEqual({
+        accessToken: expect.any(String),
+        refreshToken: expect.any(String),
+      });
+    });
   });
 
   it("returns 200 for /api/users/me with valid access token cookie", async () => {

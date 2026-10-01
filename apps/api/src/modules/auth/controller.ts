@@ -36,6 +36,7 @@ const GOOGLE_ISSUERS = new Set([
   "accounts.google.com",
 ]);
 const TELEGRAM_WIDGET_AUTH_TTL_SECONDS = 24 * 60 * 60;
+const BOT_SECRET_HEADER = "x-bot-secret";
 
 const isProduction = ENV.NODE_ENV === "production";
 const cookieBaseOptions: CookieOptions = {
@@ -255,6 +256,20 @@ async function verifyGoogleToken(idToken: string) {
   }
 
   return verifyGoogleTokenViaIdToken(idToken);
+}
+
+// The bot exchange issues tokens for a bare telegramId, so only the bot itself
+// may call it. Hashing both sides gives equal-length buffers for
+// timingSafeEqual, leaking neither content nor length.
+function hasValidBotSecret(req: Request): boolean {
+  const received = req.headers[BOT_SECRET_HEADER];
+  if (typeof received !== "string" || received.length === 0) return false;
+  const expected = crypto
+    .createHash("sha256")
+    .update(ENV.BOT_API_SECRET)
+    .digest();
+  const actual = crypto.createHash("sha256").update(received).digest();
+  return crypto.timingSafeEqual(expected, actual);
 }
 
 function verifyTelegramWidgetPayload(rawPayload: unknown) {
@@ -606,9 +621,16 @@ export async function telegramExchange(
           telegram: TelegramWidgetPayloadSchema,
         }),
       ])
-      .safeParse({ source: req.body?.source ?? "bot", ...req.body });
+      .safeParse(req.body);
     if (!parsed.success)
       throw new AppError("Invalid Telegram exchange payload", 400);
+
+    if (parsed.data.source === "bot" && !hasValidBotSecret(req)) {
+      logSecurityEvent("auth.telegram.exchange.bot_secret_invalid", {
+        ip: req.ip,
+      });
+      throw new AppError("Unauthorized", 401);
+    }
 
     const telegram =
       parsed.data.source === "widget"
