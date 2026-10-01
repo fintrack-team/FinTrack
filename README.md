@@ -319,7 +319,7 @@ The app is served under the `/FinTrack` basePath (`next.config.ts`), which also 
 One-time provisioning of the Oracle `VM.Standard.E2.1.Micro` instance (x86_64) that runs the bot:
 
 1. **Install Docker** on the VM and confirm the deploy user can run it without `sudo` (`sudo usermod -aG docker $USER`, then re-login).
-2. **Create `~/bot.env`** in the deploy user's home from [`apps/bot/.env.example`](./apps/bot/.env.example), with production values: `API_URL` → deployed Render API, `REDIS_URL` → managed Redis (e.g. Upstash), `NODE_ENV=production` (and the production `TELEGRAM_BOT_TOKEN`).
+2. **Create `~/bot.env`** in the deploy user's home from [`apps/bot/.env.example`](./apps/bot/.env.example), with production values: `API_URL` → deployed Render API, `REDIS_URL` → managed Redis (e.g. Upstash), `NODE_ENV=production` (and the production `TELEGRAM_BOT_TOKEN`, plus `BOT_API_SECRET` matching the API's value on Render).
 3. **Generate an SSH key pair** for CI and add the public key to `~/.ssh/authorized_keys` on the VM.
 4. **Add GitHub Actions secrets** (`Settings` -> `Secrets and variables` -> `Actions`):
    - `VM_HOST` — VM public IP / hostname.

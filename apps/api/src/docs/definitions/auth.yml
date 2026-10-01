@@ -62,7 +62,7 @@ components:
 
     AuthTelegramExchangeInput:
       oneOf:
-        - description: Bot exchange (trusted, no signature check)
+        - description: Bot exchange (requires X-Bot-Secret header)
           type: object
           required: [ source, telegramId, name ]
           properties:
@@ -220,7 +220,7 @@ paths:
       summary: Exchange Telegram identity for a backend session
       description: |
         Two sources accepted:
-        - `bot` — trusted internal call from the bot (no signature verification).
+        - `bot` - internal call from the bot; requires the `X-Bot-Secret` header (shared `BOT_API_SECRET`), otherwise 401.
         - `widget` — Telegram Login Widget payload with HMAC-SHA256 signature and 24 h TTL.
       security: []
       requestBody:
@@ -258,9 +258,9 @@ paths:
                   - $ref: "#/components/schemas/AuthAuthenticatedResponse"
                   - $ref: "#/components/schemas/AuthTokenPairResponse"
         "401":
-          description: Invalid or expired signature (widget source)
+          description: Invalid or expired signature (widget source), or missing/invalid `X-Bot-Secret` (bot source)
         "400":
-          description: Malformed payload
+          description: Malformed payload or missing `source`
 
   /auth/telegram/refresh:
     post:

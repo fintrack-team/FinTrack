@@ -11,6 +11,7 @@ const requiredEnvVars = [
   "CSRF_SECRET",
   "API_KEY_ENCRYPTION_SECRET",
   "TELEGRAM_BOT_TOKEN",
+  "BOT_API_SECRET",
   "GOOGLE_CLIENT_ID",
 ];
 
@@ -67,6 +68,7 @@ export const ENV = {
       ? "tokeninfo"
       : "verifyIdToken",
   TELEGRAM_BOT_TOKEN: process.env.TELEGRAM_BOT_TOKEN as string,
+  BOT_API_SECRET: process.env.BOT_API_SECRET as string,
   DATABASE_URL: process.env.DATABASE_URL as string,
   REDIS_URL: process.env.REDIS_URL as string,
   MONGO_URL: process.env.MONGO_URL ?? "",
