@@ -75,7 +75,7 @@
     "openai": "^6.45.0",
     "pino": "10.3.1",
     "prisma": "^6.19.3",
-    "rate-limit-redis": "5.0.0",
+    "rate-limit-redis": "6.0.1",
     "stripe": "^22.6.1",
     "swagger-jsdoc": "^6.3.0",
     "swagger-ui-express": "^5.0.1",
