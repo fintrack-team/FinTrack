@@ -38,7 +38,7 @@
     "dotenv": "^17.4.2",
     "grammy": "^1.46.0",
     "ioredis": "5.11.1",
-    "pino": "10.3.1"
+    "pino": "10.4.0"
   },
   "devDependencies": {
     "@types/node": "^22.20.4",
